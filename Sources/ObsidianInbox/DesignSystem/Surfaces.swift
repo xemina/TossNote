@@ -104,26 +104,3 @@ struct AppEmptyState: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
-
-struct AppInlineStatus: View {
-    let systemImage: String
-    let text: String
-    var tint: Color = AppColors.secondary
-    
-    var body: some View {
-        HStack(spacing: AppSpacing.small) {
-            Image(systemName: systemImage)
-                .font(.system(size: 12, weight: .semibold))
-            Text(text)
-                .font(AppTypography.caption)
-                .lineLimit(1)
-        }
-        .foregroundStyle(tint)
-        .padding(.horizontal, AppSpacing.small)
-        .padding(.vertical, AppSpacing.xs)
-        .background(
-            Capsule()
-                .fill(tint.opacity(0.1))
-        )
-    }
-}

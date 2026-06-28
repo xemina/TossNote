@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format follows Keep a Changelog, and this project uses Semantic Versioning.
 
+## [0.1.1] - 2026-06-28
+
+### Changed
+
+- Reorganized source files into clearer App, Models, Services, ViewModels, Views, Components, DesignSystem, and Utilities groups.
+- Rewrote README as bilingual English and Chinese documentation.
+- Added privacy and secret-scanning guidance for open-source publishing.
+
+### Removed
+
+- Removed unused template view models, old capture model, unused UI components, and unused design-system helpers.
+- Removed local macOS metadata files from the working tree.
+
 ## [0.1.0] - 2026-06-28
 
 ### Added
@@ -16,4 +29,3 @@ The format follows Keep a Changelog, and this project uses Semantic Versioning.
 - Markdown editing before save.
 - Storage targets for Obsidian, local folders, and Joplin Web Clipper API.
 - Attachment handling for images and documents.
-
