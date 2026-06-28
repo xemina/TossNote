@@ -6,6 +6,9 @@ struct PrimaryButton: View {
     let action: () -> Void
     var isEnabled: Bool = true
     var isFullWidth: Bool = false
+    var tint: Color = AppColors.active
+    var foreground: Color = AppColors.activeInk
+    @State private var isHovering = false
     
     var body: some View {
         Button(action: action) {
@@ -22,13 +25,18 @@ struct PrimaryButton: View {
             .padding(.vertical, AppSpacing.small)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.medium)
-                    .fill(isEnabled ? AppColors.active : AppColors.surfaceMuted)
+                    .fill(isEnabled ? (isHovering ? tint.opacity(0.86) : tint) : AppColors.surfaceMuted)
             )
-            .foregroundStyle(isEnabled ? .white : AppColors.secondary)
+            .foregroundStyle(isEnabled ? foreground : AppColors.secondary)
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.65)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovering = hovering && isEnabled
+            }
+        }
     }
 }
 
@@ -38,6 +46,9 @@ struct SecondaryButton: View {
     let action: () -> Void
     var isEnabled: Bool = true
     var isFullWidth: Bool = false
+    var tint: Color = AppColors.primary
+    var fill: Color? = nil
+    @State private var isHovering = false
     
     var body: some View {
         Button(action: action) {
@@ -54,17 +65,26 @@ struct SecondaryButton: View {
             .padding(.vertical, AppSpacing.small)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.medium)
-                    .fill(AppColors.surfaceRaised)
+                    .fill(secondaryFill)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadius.medium)
-                    .stroke(AppColors.subtleBorder, lineWidth: 1)
-            )
-            .foregroundStyle(isEnabled ? AppColors.primary : AppColors.secondary)
+            .foregroundStyle(isEnabled ? tint : AppColors.secondary)
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.65)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovering = hovering && isEnabled
+            }
+        }
+    }
+
+    private var secondaryFill: Color {
+        guard isEnabled else { return AppColors.surfaceRaised }
+        if let fill {
+            return isHovering ? fill.opacity(0.72) : fill
+        }
+        return isHovering ? tint.opacity(0.10) : AppColors.surfaceRaised
     }
 }
 
@@ -74,6 +94,7 @@ struct IconButton: View {
     var isEnabled: Bool = true
     var help: String? = nil
     var tint: Color = AppColors.secondary
+    @State private var isHovering = false
     
     var body: some View {
         Button(action: action) {
@@ -83,16 +104,17 @@ struct IconButton: View {
                 .frame(width: 28, height: 28)
                 .background(
                     RoundedRectangle(cornerRadius: AppRadius.medium)
-                        .fill(AppColors.surfaceRaised)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.medium)
-                        .stroke(AppColors.subtleBorder, lineWidth: 1)
+                        .fill(isHovering && isEnabled ? tint.opacity(0.10) : AppColors.surfaceRaised)
                 )
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .help(help ?? "")
         .opacity(isEnabled ? 1 : 0.65)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovering = hovering && isEnabled
+            }
+        }
     }
 }

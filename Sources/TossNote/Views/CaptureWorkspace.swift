@@ -3,12 +3,13 @@ import AppKit
 
 struct CaptureWorkspace: View {
     @Binding var captureItems: [CaptureWorkspaceItem]
+    let language: String
     @State private var expandedItems: Set<UUID> = []
     
     var body: some View {
         VStack(spacing: 0) {
             if captureItems.isEmpty {
-                AppEmptyState(systemImage: "inbox", title: "No items captured")
+                AppEmptyState(systemImage: "inbox", title: t("No items captured", "还没有添加项目"))
             } else {
                 ScrollView {
                     VStack(spacing: AppSpacing.medium) {
@@ -16,6 +17,7 @@ struct CaptureWorkspace: View {
                             if item.type == .text {
                                 TextItemView(
                                     item: $item,
+                                    language: language,
                                     isExpanded: expandedItems.contains(item.id),
                                     toggleExpanded: { toggleExpanded(item.id) },
                                     onRemove: { removeItem(item.id) }
@@ -23,6 +25,7 @@ struct CaptureWorkspace: View {
                             } else if item.type == .url {
                                 URLItemView(
                                     item: $item,
+                                    language: language,
                                     isExpanded: expandedItems.contains(item.id),
                                     toggleExpanded: { toggleExpanded(item.id) },
                                     onRemove: { removeItem(item.id) }
@@ -30,6 +33,7 @@ struct CaptureWorkspace: View {
                             } else if item.type == .image {
                                 ImageItemView(
                                     item: $item,
+                                    language: language,
                                     isExpanded: expandedItems.contains(item.id),
                                     toggleExpanded: { toggleExpanded(item.id) },
                                     onRemove: { removeItem(item.id) }
@@ -37,6 +41,7 @@ struct CaptureWorkspace: View {
                             } else {
                                 DocumentItemView(
                                     item: $item,
+                                    language: language,
                                     isExpanded: expandedItems.contains(item.id),
                                     toggleExpanded: { toggleExpanded(item.id) },
                                     onRemove: { removeItem(item.id) }
@@ -63,11 +68,16 @@ struct CaptureWorkspace: View {
             expandedItems.insert(id)
         }
     }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
+    }
 }
 
 // MARK: - Document Item View
 struct DocumentItemView: View {
     @Binding var item: CaptureWorkspaceItem
+    let language: String
     var isExpanded: Bool
     var toggleExpanded: () -> Void
     var onRemove: () -> Void
@@ -96,8 +106,8 @@ struct DocumentItemView: View {
 
                 Spacer()
 
-                StatusBadge(status: item.status, label: item.statusLabel)
-                IconButton(systemImage: "xmark", action: onRemove, help: "Remove this document")
+                StatusBadge(status: item.status, label: item.statusLabel(language: language))
+                IconButton(systemImage: "xmark", action: onRemove, help: t("Remove this document", "移除此文档"))
             }
 
             if !item.ocrText.isEmpty {
@@ -117,13 +127,13 @@ struct DocumentItemView: View {
                 if item.ocrText.split(separator: "\n").count > 5 {
                     Button(action: toggleExpanded) {
                         HStack(spacing: AppSpacing.xs) {
-                            Text(isExpanded ? "Show Less" : "Show More")
+                            Text(isExpanded ? t("Show Less", "收起") : t("Show More", "展开"))
                                 .font(AppTypography.caption)
                                 .fontWeight(.semibold)
                             Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                 .font(.system(size: 11, weight: .semibold))
                         }
-                        .foregroundStyle(AppColors.active)
+                        .foregroundStyle(AppColors.activeStrong)
                     }
                     .buttonStyle(.plain)
                 }
@@ -131,7 +141,7 @@ struct DocumentItemView: View {
                 HStack(spacing: AppSpacing.small) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(AppColors.warning)
-                    Text("Could not extract content.")
+                    Text(t("Could not extract content.", "无法提取内容。"))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondary)
                 }
@@ -139,7 +149,7 @@ struct DocumentItemView: View {
                 HStack(spacing: AppSpacing.small) {
                     ProgressView()
                         .scaleEffect(0.6)
-                    Text("Extracting document text...")
+                    Text(t("Extracting document text...", "正在提取文档文本..."))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondary)
                 }
@@ -151,17 +161,17 @@ struct DocumentItemView: View {
     private var documentSubtitle: String {
         switch item.type {
         case .pdf:
-            return "PDF document"
+            return t("PDF document", "PDF 文档")
         case .officeDocument:
-            return "Office document"
+            return t("Office document", "Office 文档")
         case .file:
-            return "File"
+            return t("File", "文件")
         case .image:
-            return "Image"
+            return t("Image", "图片")
         case .url:
-            return "Link"
+            return t("Link", "链接")
         case .text:
-            return "Text"
+            return t("Text", "文本")
         }
     }
 
@@ -170,7 +180,7 @@ struct DocumentItemView: View {
         case .pdf:
             return AppColors.error
         case .officeDocument:
-            return AppColors.active
+            return AppColors.activeStrong
         default:
             return AppColors.secondary
         }
@@ -184,11 +194,16 @@ struct DocumentItemView: View {
             .prefix(8)
             .joined(separator: "\n")
     }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
+    }
 }
 
 // MARK: - URL Item View
 struct URLItemView: View {
     @Binding var item: CaptureWorkspaceItem
+    let language: String
     var isExpanded: Bool
     var toggleExpanded: () -> Void
     var onRemove: () -> Void
@@ -198,7 +213,7 @@ struct URLItemView: View {
             HStack(alignment: .top, spacing: AppSpacing.small) {
                 Image(systemName: "link.circle.fill")
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(AppColors.active)
+                    .foregroundStyle(AppColors.activeStrong)
                     .frame(width: 28, height: 28)
 
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
@@ -219,8 +234,8 @@ struct URLItemView: View {
 
                 Spacer()
 
-                StatusBadge(status: item.status, label: item.statusLabel)
-                IconButton(systemImage: "xmark", action: onRemove, help: "Remove this link")
+                StatusBadge(status: item.status, label: item.statusLabel(language: language))
+                IconButton(systemImage: "xmark", action: onRemove, help: t("Remove this link", "移除此链接"))
             }
 
             if !item.ocrText.isEmpty {
@@ -240,13 +255,13 @@ struct URLItemView: View {
                 if item.ocrText.split(separator: "\n").count > 4 {
                     Button(action: toggleExpanded) {
                         HStack(spacing: AppSpacing.xs) {
-                            Text(isExpanded ? "Show Less" : "Show More")
+                            Text(isExpanded ? t("Show Less", "收起") : t("Show More", "展开"))
                                 .font(AppTypography.caption)
                                 .fontWeight(.semibold)
                             Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                 .font(.system(size: 11, weight: .semibold))
                         }
-                        .foregroundStyle(AppColors.active)
+                        .foregroundStyle(AppColors.activeStrong)
                     }
                     .buttonStyle(.plain)
                 }
@@ -254,7 +269,7 @@ struct URLItemView: View {
                 HStack(spacing: AppSpacing.small) {
                     ProgressView()
                         .scaleEffect(0.6)
-                    Text("Fetching link content...")
+                    Text(t("Fetching link content...", "正在抓取链接内容..."))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondary)
                 }
@@ -280,11 +295,16 @@ struct URLItemView: View {
 
         return lines.prefix(8).joined(separator: "\n")
     }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
+    }
 }
 
 // MARK: - Text Item View (Simple, no image)
 struct TextItemView: View {
     @Binding var item: CaptureWorkspaceItem
+    let language: String
     var isExpanded: Bool
     var toggleExpanded: () -> Void
     var onRemove: () -> Void
@@ -302,7 +322,7 @@ struct TextItemView: View {
                 
                 Spacer()
                 
-                IconButton(systemImage: "xmark", action: onRemove, help: "Remove this item")
+                IconButton(systemImage: "xmark", action: onRemove, help: t("Remove this item", "移除此项目"))
             }
             
             // Text content
@@ -327,25 +347,30 @@ struct TextItemView: View {
                 Button(action: toggleExpanded) {
                     HStack {
                         Spacer()
-                        Text(isExpanded ? "Show Less" : "Show More")
+                        Text(isExpanded ? t("Show Less", "收起") : t("Show More", "展开"))
                             .font(AppTypography.caption)
                             .fontWeight(.semibold)
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: 12, weight: .semibold))
                         Spacer()
                     }
-                    .foregroundStyle(AppColors.active)
+                    .foregroundStyle(AppColors.activeStrong)
                 }
                 .buttonStyle(.plain)
             }
         }
         .appSurface(.muted)
     }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
+    }
 }
 
 // MARK: - Image Item View
 struct ImageItemView: View {
     @Binding var item: CaptureWorkspaceItem
+    let language: String
     var isExpanded: Bool
     var toggleExpanded: () -> Void
     var onRemove: () -> Void
@@ -388,20 +413,20 @@ struct ImageItemView: View {
                                     .foregroundStyle(AppColors.secondary)
                             }
                             
-                            StatusBadge(status: item.status, label: item.statusLabel)
+                            StatusBadge(status: item.status, label: item.statusLabel(language: language))
                         }
                         
                         Spacer()
                         
                         // Remove button
-                        IconButton(systemImage: "xmark", action: onRemove, help: "Remove this item")
+                        IconButton(systemImage: "xmark", action: onRemove, help: t("Remove this item", "移除此项目"))
                     }
                     
                     // OCR Results for images
                     if !item.ocrText.isEmpty {
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
                             HStack {
-                                Text("Extracted Text")
+                                Text(t("Extracted Text", "提取文本"))
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColors.secondary)
                                 
@@ -435,7 +460,7 @@ struct ImageItemView: View {
                         HStack(spacing: AppSpacing.small) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(AppColors.warning)
-                            Text("Could not extract content.")
+                            Text(t("Could not extract content.", "无法提取内容。"))
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.secondary)
                         }
@@ -447,7 +472,7 @@ struct ImageItemView: View {
                         HStack(spacing: AppSpacing.small) {
                             Image(systemName: "hourglass")
                                 .foregroundStyle(AppColors.secondary)
-                            Text("Extracting text...")
+                            Text(t("Extracting text...", "正在提取文本..."))
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.secondary)
                         }
@@ -459,6 +484,10 @@ struct ImageItemView: View {
             }
         }
         .appSurface(.muted)
+    }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
     }
 }
 
@@ -485,18 +514,22 @@ struct CaptureWorkspaceItem: Identifiable {
     }
     
     var statusLabel: String {
+        statusLabel(language: AppLanguage.english.rawValue)
+    }
+
+    func statusLabel(language: String) -> String {
         switch status {
-        case .waiting: return "Waiting"
-        case .processing: return "Processing"
+        case .waiting: return AppText.text("Waiting", "等待中", language: language)
+        case .processing: return AppText.text("Processing", "处理中", language: language)
         case .completed:
             switch type {
-            case .image: return "OCR Complete"
-            case .pdf: return "Text Extracted"
-            case .officeDocument: return "Text Extracted"
-            case .text: return "Added"
-            case .url, .file: return "Text Extracted"
+            case .image: return AppText.text("OCR Complete", "OCR 完成", language: language)
+            case .pdf: return AppText.text("Text Extracted", "已提取文本", language: language)
+            case .officeDocument: return AppText.text("Text Extracted", "已提取文本", language: language)
+            case .text: return AppText.text("Added", "已添加", language: language)
+            case .url, .file: return AppText.text("Text Extracted", "已提取文本", language: language)
             }
-        case .failed: return "Failed"
+        case .failed: return AppText.text("Failed", "失败", language: language)
         }
     }
 }

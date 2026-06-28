@@ -75,7 +75,7 @@ struct AppSectionHeader: View {
         HStack(spacing: AppSpacing.small) {
             Image(systemName: systemImage)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(AppColors.active)
+                .foregroundStyle(AppColors.activeStrong)
                 .frame(width: 18)
             
             Text(title)

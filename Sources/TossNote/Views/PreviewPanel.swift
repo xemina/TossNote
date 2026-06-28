@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PreviewPanel: View {
     @Binding var markdown: String
+    let language: String
     
     var body: some View {
         VStack(spacing: 0) {
@@ -17,7 +18,7 @@ struct PreviewPanel: View {
                     .padding(AppSpacing.panelPadding)
 
                 if markdown.isEmpty {
-                    Text("Markdown will appear here")
+                    Text(t("Markdown will appear here", "Markdown 会显示在这里"))
                         .font(AppTypography.body)
                         .foregroundStyle(AppColors.tertiary)
                         .padding(AppSpacing.panelPadding + AppSpacing.medium)
@@ -27,6 +28,10 @@ struct PreviewPanel: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.background)
+    }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
     }
 }
 
@@ -68,7 +73,7 @@ struct MarkdownRenderer: View {
             renderList(items)
         case .link(let text, let url):
             Link(text, destination: URL(string: url) ?? URL(fileURLWithPath: ""))
-                .foregroundStyle(AppColors.active)
+                .foregroundStyle(AppColors.activeStrong)
         case .task(let completed, let text):
             HStack(spacing: AppSpacing.small) {
                 Image(systemName: completed ? "checkmark.circle.fill" : "circle")

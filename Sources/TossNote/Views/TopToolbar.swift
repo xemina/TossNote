@@ -17,7 +17,7 @@ struct TopToolbar: View {
                     label: t("Paste", "粘贴"),
                     action: onRead,
                     isEnabled: true,
-                    accentColor: AppColors.active
+                    accentColor: AppColors.paste
                 )
                 
                 ToolbarIconButton(
@@ -25,7 +25,7 @@ struct TopToolbar: View {
                     label: t("Organize", "整理"),
                     action: onOrganize,
                     isEnabled: !viewModel.isProcessing,
-                    accentColor: .purple
+                    accentColor: AppColors.organize
                 )
 
                 ToolbarIconButton(
@@ -33,7 +33,7 @@ struct TopToolbar: View {
                     label: t("Quick Save", "一键保存"),
                     action: onQuickSave,
                     isEnabled: !viewModel.isProcessing,
-                    accentColor: AppColors.active,
+                    accentColor: AppColors.quickSave,
                     isProminent: true
                 )
                 
@@ -58,15 +58,15 @@ struct TopToolbar: View {
                     label: t("Save", "保存"),
                     action: onSave,
                     isEnabled: true,
-                    accentColor: AppColors.success
+                    accentColor: AppColors.save
                 )
-                
+
                 ToolbarIconButton(
                     icon: "gearshape",
                     label: t("Settings", "设置"),
                     action: onSettings,
                     isEnabled: true,
-                    accentColor: .gray
+                    accentColor: AppColors.settings
                 )
             }
             .padding(.horizontal, AppSpacing.xl)
@@ -90,7 +90,9 @@ struct ToolbarIconButton: View {
     let action: () -> Void
     var isEnabled: Bool = true
     var accentColor: Color = .blue
+    var backgroundColor: Color? = nil
     var isProminent = false
+    var compact = false
     
     @State private var isHovering = false
     
@@ -100,23 +102,22 @@ struct ToolbarIconButton: View {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .semibold))
                 
-                Text(label)
-                    .font(AppTypography.captionMedium)
-                    .lineLimit(1)
+                if !compact {
+                    Text(label)
+                        .font(AppTypography.captionMedium)
+                        .lineLimit(1)
+                }
             }
-            .frame(width: 68, height: 46)
-            .foregroundStyle(isProminent && isEnabled ? .white : (isEnabled ? accentColor : AppColors.secondary))
+            .frame(width: compact ? 38 : 68, height: compact ? 38 : 46)
+            .foregroundStyle(isProminent && isEnabled ? AppColors.activeInk : (isEnabled ? accentColor : AppColors.secondary))
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.large)
                     .fill(prominentFill)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadius.large)
-                    .stroke(isHovering && isEnabled ? accentColor.opacity(0.25) : Color.clear, lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
+        .help(compact ? label : "")
         .opacity(isEnabled ? 1.0 : 0.5)
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
@@ -127,9 +128,13 @@ struct ToolbarIconButton: View {
 
     private var prominentFill: Color {
         if isProminent && isEnabled {
-            return isHovering ? accentColor.opacity(0.9) : accentColor
+            return isHovering ? accentColor.opacity(0.86) : accentColor
         }
 
-        return isHovering && isEnabled ? accentColor.opacity(0.12) : Color.clear
+        if let backgroundColor, isEnabled {
+            return isHovering ? backgroundColor.opacity(0.76) : backgroundColor
+        }
+
+        return isHovering && isEnabled ? accentColor.opacity(0.10) : Color.clear
     }
 }

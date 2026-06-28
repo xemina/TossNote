@@ -8,7 +8,9 @@ struct CapturePanel: View {
     @Binding var hasPendingProcessing: Bool
     @Binding var capturedAttachments: [CapturedAttachment]
     @Binding var inputWordCount: Int
+    let language: String
     @State private var droppedItems: [DraggedItem] = []
+    @State private var processedDroppedItemIDs: Set<UUID> = []
     @State private var captureItems: [CaptureWorkspaceItem] = []
     @State private var manualText: String = ""
     
@@ -18,20 +20,20 @@ struct CapturePanel: View {
     
     var body: some View {
         VStack(spacing: AppSpacing.medium) {
-            DropZone(droppedItems: $droppedItems)
+            DropZone(droppedItems: $droppedItems, language: language)
                 .frame(height: 130)
             
-            CaptureWorkspace(captureItems: $captureItems)
+            CaptureWorkspace(captureItems: $captureItems, language: language)
                 .frame(maxHeight: .infinity)
             
             Divider()
             
             VStack(alignment: .leading, spacing: AppSpacing.small) {
                 HStack {
-                    AppSectionHeader(title: "Paste or Type Text", systemImage: "doc.text")
+                    AppSectionHeader(title: t("Paste or Type Text", "粘贴或输入文本"), systemImage: "doc.text")
                     Spacer()
                     if !manualText.isEmpty {
-                        IconButton(systemImage: "xmark", action: { manualText = "" }, help: "Clear text")
+                        IconButton(systemImage: "xmark", action: { manualText = "" }, help: t("Clear text", "清空文本"))
                     }
                 }
                 
@@ -42,11 +44,12 @@ struct CapturePanel: View {
                     .appTextSurface(minHeight: 80, maxHeight: 120)
                 
                 if !manualText.isEmpty {
-                    PrimaryButton(
-                        label: "Add as Item",
+                    SecondaryButton(
+                        label: t("Add as Item", "添加为项目"),
                         systemImage: "plus.circle.fill",
                         action: addManualTextItem,
-                        isFullWidth: true
+                        isFullWidth: true,
+                        tint: AppColors.paste
                     )
                 }
             }
@@ -110,15 +113,19 @@ struct CapturePanel: View {
             }
         }
     }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
+    }
     
     private func addPastedTextItem(_ text: String) {
-        if addURLItemsIfNeeded(from: text, fallbackName: "Pasted Link") {
+        if addURLItemsIfNeeded(from: text, fallbackName: t("Pasted Link", "粘贴的链接")) {
             return
         }
 
         let newItem = CaptureWorkspaceItem(
             id: UUID(),
-            name: "Pasted Text",
+            name: t("Pasted Text", "粘贴文本"),
             type: .text,
             sourceURL: nil,
             thumbnail: nil
@@ -141,9 +148,13 @@ struct CapturePanel: View {
         captureItems.removeAll { $0.isRemoved }
         
         let existingIds = Set(captureItems.map { $0.id })
-        let newItems = droppedItems.filter { !existingIds.contains($0.id) }
+        let newItems = droppedItems.filter {
+            !existingIds.contains($0.id) && !processedDroppedItemIDs.contains($0.id)
+        }
         
         for item in newItems {
+            processedDroppedItemIDs.insert(item.id)
+
             let workspaceItem = CaptureWorkspaceItem(
                 id: item.id,
                 name: item.name,
@@ -194,7 +205,7 @@ struct CapturePanel: View {
     }
     
     private func addManualTextItem() {
-        if addURLItemsIfNeeded(from: manualText, fallbackName: "Manual Link") {
+        if addURLItemsIfNeeded(from: manualText, fallbackName: t("Manual Link", "手动链接")) {
             manualText = ""
             publishCaptureState()
             return
@@ -202,7 +213,7 @@ struct CapturePanel: View {
 
         let newItem = CaptureWorkspaceItem(
             id: UUID(),
-            name: "Manual Text",
+            name: t("Manual Text", "手动文本"),
             type: .text,
             sourceURL: nil,
             thumbnail: nil

@@ -4,55 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format follows Keep a Changelog, and this project uses Semantic Versioning.
 
-## [1.1.0] - 2026-06-28
+## [1.0.0] - 2026-07-05
 
 ### Added
 
-- Added a Quick Save workflow that organizes captured input and saves the generated Markdown in one action.
-- Added Appearance settings for English/Simplified Chinese preference and light/dark mode.
-- Added a calmer moss-green visual accent for the app chrome and primary actions.
-
-## [1.0.0] - 2026-06-28
-
-### Added
-
-- First public release of Markdown AI Inbox.
-- Includes capture, local extraction, AI organization, editable Markdown preview, Obsidian save, local folder save, and Joplin save.
-- Includes Keychain-based credential storage and guarded public-web URL extraction.
-
-## [0.1.2] - 2026-06-28
+- First public release of TossNote.
+- Capture text, links, images, PDFs, Office documents, and local files.
+- Extract readable URL content locally with safety checks.
+- Run local OCR for images with Apple Vision.
+- Extract text from PDFs and basic Office XML documents.
+- Organize mixed captured content into editable Markdown with a configurable AI provider and prompt.
+- Quick Save workflow for organizing and saving in one step.
+- Save Markdown and attachments to Obsidian, a plain local folder, or Joplin Web Clipper.
+- English and Simplified Chinese interface support.
+- Light and dark UI themes.
+- App icon assets for macOS packaging.
 
 ### Security
 
-- Moved AI provider API keys from UserDefaults to macOS Keychain with automatic migration of existing keys.
-- Moved the Joplin Web Clipper token from AppStorage/UserDefaults to macOS Keychain.
-- Required HTTPS for AI endpoints to avoid sending API keys over unencrypted connections.
-- Blocked web extraction for localhost, `.local`, private-network, link-local, and non-HTTP(S) URLs.
-- Added redirect safety checks and an ephemeral URLSession for web extraction.
-- Added request timeouts and a 50 MB per-attachment upload limit for Joplin saves.
-
-## [0.1.1] - 2026-06-28
-
-### Changed
-
-- Reorganized source files into clearer App, Models, Services, ViewModels, Views, Components, DesignSystem, and Utilities groups.
-- Rewrote README as bilingual English and Chinese documentation.
-- Added privacy and secret-scanning guidance for open-source publishing.
-
-### Removed
-
-- Removed unused template view models, old capture model, unused UI components, and unused design-system helpers.
-- Removed local macOS metadata files from the working tree.
-
-## [0.1.0] - 2026-06-28
-
-### Added
-
-- Initial open-source version.
-- macOS SwiftUI inbox interface for text, links, images, PDFs, Office documents, and local files.
-- AI organization with OpenAI-compatible, Anthropic-compatible, Gemini, OpenRouter, AnyRouter, and custom providers.
-- Local OCR for images using Apple Vision.
-- Local web link fetching with metadata and article-text extraction.
-- Markdown editing before save.
-- Storage targets for Obsidian, local folders, and Joplin Web Clipper API.
-- Attachment handling for images and documents.
+- Store API keys and Joplin tokens locally with lightweight encoding to avoid macOS Keychain permission prompts in unsigned builds.
+- Require HTTPS for AI endpoints.
+- Block unsafe local, private-network, and non-HTTP(S) web extraction targets.
+- Limit large files before extraction or upload.

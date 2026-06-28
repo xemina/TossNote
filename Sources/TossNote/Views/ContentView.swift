@@ -22,6 +22,7 @@ struct ContentView: View {
     @AppStorage("appLanguage") private var appLanguage = AppLanguage.english.rawValue
     @AppStorage("appThemeMode") private var appThemeMode = AppThemeMode.light.rawValue
     @State private var joplinToken = ""
+    @State private var hasLoadedJoplinToken = false
     
     @State private var settingsWindow: NSWindow?
     @State private var settingsWindowDelegate: SettingsWindowDelegate?
@@ -46,11 +47,12 @@ struct ContentView: View {
                         capturedContent: $capturedContent,
                         hasPendingProcessing: $hasPendingCaptureProcessing,
                         capturedAttachments: $capturedAttachments,
-                        inputWordCount: $inputWordCount
+                        inputWordCount: $inputWordCount,
+                        language: appLanguage
                     )
                         .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
                     
-                    PreviewPanel(markdown: $markdown)
+                    PreviewPanel(markdown: $markdown, language: appLanguage)
                         .frame(minWidth: 360, maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -68,7 +70,10 @@ struct ContentView: View {
             BottomStatusBar(
                 viewModel: viewModel,
                 wordCount: activeWordCount,
-                ocrCount: 0
+                ocrCount: 0,
+                language: appLanguage,
+                themeMode: selectedThemeMode,
+                onToggleTheme: toggleThemeMode
             )
         }
         .frame(minWidth: 800, minHeight: 600)
@@ -82,56 +87,86 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            loadSecureSettings()
+            loadJoplinTokenIfNeeded()
             checkAIConfigurationOnStartup()
         }
         .onChange(of: joplinToken) { newValue in
-            KeychainStore.save(newValue, account: joplinTokenAccount)
+            guard hasLoadedJoplinToken else { return }
+            LocalSecretStore.save(newValue, account: joplinTokenAccount)
         }
-        .alert("⚠️ Configuration Issue", isPresented: Binding(
+        .onChange(of: appThemeMode) { _ in
+            if let settingsWindow {
+                applyTheme(to: settingsWindow)
+            }
+        }
+        .alert(t("Configuration Issue", "配置问题"), isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }
         )) {
-            Button("Open Settings") {
+            Button(t("Open Settings", "打开设置")) {
                 openSettingsWindow()
             }
-            Button("OK", role: .cancel) {
+            Button(t("OK", "好的"), role: .cancel) {
                 viewModel.errorMessage = nil
             }
         } message: {
-            Text(viewModel.errorMessage ?? "")
+            Text(localizedErrorMessage(viewModel.errorMessage ?? ""))
         }
     }
     
     private func checkAIConfigurationOnStartup() {
         viewModel.refreshAIConfigurationStatus()
-        let validation = viewModel.validateAISetup()
+        let validation = viewModel.validateAISetup(loadStoredAPIKey: false)
         if !validation.isValid {
-            viewModel.errorMessage = validation.message
+            viewModel.errorMessage = nil
         } else {
             viewModel.errorMessage = nil
         }
+    }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: appLanguage)
+    }
+
+    private func localizedErrorMessage(_ message: String) -> String {
+        guard appLanguage == AppLanguage.simplifiedChinese.rawValue else { return message }
+
+        return message
+            .replacingOccurrences(of: "No content to organize. Please paste or add some text first.", with: "没有可整理的内容。请先粘贴或添加文本。")
+            .replacingOccurrences(of: "No markdown to save. Organize content first.", with: "没有可保存的 Markdown。请先整理内容。")
+            .replacingOccurrences(of: "AI Processing Error", with: "AI 处理错误")
+            .replacingOccurrences(of: "API key is not configured", with: "尚未配置 API Key")
+            .replacingOccurrences(of: "Please go to Settings and add your API key.", with: "请打开设置并添加 API Key。")
+            .replacingOccurrences(of: "Model is not configured", with: "尚未配置模型")
+            .replacingOccurrences(of: "Please choose or enter a model.", with: "请选择或输入模型。")
+            .replacingOccurrences(of: "API endpoint is not configured", with: "尚未配置 API endpoint")
+            .replacingOccurrences(of: "Please enter the full API endpoint.", with: "请输入完整的 API endpoint。")
     }
 
     private var joplinTokenAccount: String {
         "joplin-web-clipper-token"
     }
 
-    private func loadSecureSettings() {
-        let keychainToken = KeychainStore.read(account: joplinTokenAccount)
-        if !keychainToken.isEmpty {
-            joplinToken = keychainToken
+    private func loadJoplinTokenIfNeeded() {
+        guard !hasLoadedJoplinToken else { return }
+
+        let localToken = LocalSecretStore.read(account: joplinTokenAccount)
+        if !localToken.isEmpty {
+            joplinToken = localToken
+            hasLoadedJoplinToken = true
             return
         }
 
         guard let legacyToken = UserDefaults.standard.string(forKey: "joplinToken"),
               !legacyToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            hasLoadedJoplinToken = true
             return
         }
 
-        KeychainStore.save(legacyToken, account: joplinTokenAccount)
+        LocalSecretStore.save(legacyToken, account: joplinTokenAccount)
         UserDefaults.standard.removeObject(forKey: "joplinToken")
         joplinToken = legacyToken
+        hasLoadedJoplinToken = true
     }
 
     private var activeWordCount: Int {
@@ -141,9 +176,13 @@ struct ContentView: View {
     
     private func openSettingsWindow() {
         if let settingsWindow {
+            applyTheme(to: settingsWindow)
             settingsWindow.makeKeyAndOrderFront(nil)
             return
         }
+
+        viewModel.loadAPIKeyForSettingsIfNeeded()
+        loadJoplinTokenIfNeeded()
         
         let settingsView = SettingsWindowView(
             viewModel: viewModel,
@@ -159,11 +198,12 @@ struct ContentView: View {
         
         let hostingController = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hostingController)
-        window.title = "Settings"
+        window.title = t("Settings", "设置")
         window.setContentSize(NSSize(width: 700, height: 500))
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.center()
         window.isReleasedWhenClosed = false
+        applyTheme(to: window)
         let delegate = SettingsWindowDelegate(onClose: {
             settingsWindow = nil
             settingsWindowDelegate = nil
@@ -172,6 +212,12 @@ struct ContentView: View {
         window.delegate = delegate
         settingsWindow = window
         window.makeKeyAndOrderFront(nil)
+    }
+
+    private func applyTheme(to window: NSWindow) {
+        window.appearance = NSAppearance(
+            named: selectedThemeMode == .dark ? .darkAqua : .aqua
+        )
     }
     
     private func pasteFromClipboard() {
@@ -247,12 +293,12 @@ struct ContentView: View {
         let input = capturedContent.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !input.isEmpty else {
-            viewModel.errorMessage = "No content to organize. Please paste or add some text first."
+            viewModel.errorMessage = t("No content to organize. Please paste or add some text first.", "没有可整理的内容。请先粘贴或添加文本。")
             return nil
         }
         
         guard !hasPendingCaptureProcessing else {
-            viewModel.errorMessage = "Some input items are still being processed. Please wait for extraction to finish."
+            viewModel.errorMessage = t("Some input items are still being processed. Please wait for extraction to finish.", "部分输入项目仍在处理中，请等待内容提取完成。")
             return nil
         }
         
@@ -274,7 +320,7 @@ struct ContentView: View {
         guard validateStorageConfiguration() else { return }
 
         guard !markdownToSave.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            viewModel.errorMessage = "No markdown to save. Organize content first."
+            viewModel.errorMessage = t("No markdown to save. Organize content first.", "没有可保存的 Markdown。请先整理内容。")
             return
         }
 
@@ -290,8 +336,8 @@ struct ContentView: View {
                     storesAttachmentsInSubfolder: selectedStorageTarget == .obsidian
                 )
                 viewModel.errorMessage = nil
-                let targetName = selectedStorageTarget == .obsidian ? "Obsidian" : "Local Folder"
-                showTransientSuccess("Saved to \(targetName): \(savedURL.lastPathComponent)")
+                let targetName = selectedStorageTarget == .obsidian ? "Obsidian" : t("Local Folder", "本地文件夹")
+                showTransientSuccess(t("Saved to", "已保存到") + " \(targetName): \(savedURL.lastPathComponent)")
             case .joplin:
                 let savedNote = try await joplinWriter.save(
                     markdown: markdownToSave,
@@ -301,12 +347,12 @@ struct ContentView: View {
                     attachments: capturedAttachments
                 )
                 viewModel.errorMessage = nil
-                showTransientSuccess("Saved to Joplin: \(savedNote.title)")
+                showTransientSuccess(t("Saved to Joplin", "已保存到 Joplin") + ": \(savedNote.title)")
             }
         } catch let error as JoplinError {
-            viewModel.errorMessage = "Failed to save to Joplin: \(error.localizedDescription)"
+            viewModel.errorMessage = t("Failed to save to Joplin", "保存到 Joplin 失败") + ": \(error.localizedDescription)"
         } catch {
-            viewModel.errorMessage = "Failed to save: \(error.localizedDescription)"
+            viewModel.errorMessage = t("Failed to save", "保存失败") + ": \(error.localizedDescription)"
         }
     }
 
@@ -316,6 +362,10 @@ struct ContentView: View {
 
     private var selectedThemeMode: AppThemeMode {
         AppThemeMode(rawValue: appThemeMode) ?? .light
+    }
+
+    private func toggleThemeMode() {
+        appThemeMode = selectedThemeMode == .dark ? AppThemeMode.light.rawValue : AppThemeMode.dark.rawValue
     }
 
     private func validateStorageConfiguration() -> Bool {
@@ -328,16 +378,18 @@ struct ContentView: View {
     }
 
     private func validateJoplinConfiguration() -> Bool {
+        loadJoplinTokenIfNeeded()
+
         let token = joplinToken.trimmingCharacters(in: .whitespacesAndNewlines)
         let port = joplinPort.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !token.isEmpty else {
-            viewModel.errorMessage = "Joplin API token is not configured. Open Settings > Storage and paste the Web Clipper token."
+            viewModel.errorMessage = t("Joplin API token is not configured. Open Settings > Storage and paste the Web Clipper token.", "尚未配置 Joplin API token。请打开 设置 > 存储，粘贴 Web Clipper token。")
             return false
         }
 
         guard let portNumber = Int(port), portNumber > 0 else {
-            viewModel.errorMessage = "Joplin port is invalid. The default Web Clipper port is 41184."
+            viewModel.errorMessage = t("Joplin port is invalid. The default Web Clipper port is 41184.", "Joplin 端口无效。Web Clipper 默认端口是 41184。")
             return false
         }
 
@@ -362,16 +414,16 @@ struct ContentView: View {
     private func validateLocalFolderConfiguration() -> Bool {
         let path = vaultPath.trimmingCharacters(in: .whitespacesAndNewlines)
         let folder = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let targetLabel = selectedStorageTarget == .obsidian ? "Obsidian vault" : "local storage"
+        let targetLabel = selectedStorageTarget == .obsidian ? t("Obsidian vault", "Obsidian 仓库") : t("local storage", "本地存储")
 
         guard !path.isEmpty else {
-            viewModel.errorMessage = "\(targetLabel.capitalized) folder is not configured. Open Settings > Storage and choose a local folder."
+            viewModel.errorMessage = t("\(targetLabel.capitalized) folder is not configured. Open Settings > Storage and choose a local folder.", "\(targetLabel)文件夹尚未配置。请打开 设置 > 存储，选择本地文件夹。")
             return false
         }
 
         if selectedStorageTarget == .obsidian {
             guard !folder.isEmpty else {
-                viewModel.errorMessage = "Inbox folder is not configured. Open Settings > Storage and enter a folder name."
+                viewModel.errorMessage = t("Inbox folder is not configured. Open Settings > Storage and enter a folder name.", "Inbox 文件夹尚未配置。请打开 设置 > 存储，输入文件夹名称。")
                 return false
             }
         }
@@ -379,7 +431,7 @@ struct ContentView: View {
         let expandedPath = (path as NSString).expandingTildeInPath
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: expandedPath, isDirectory: &isDirectory), isDirectory.boolValue else {
-            viewModel.errorMessage = "\(targetLabel.capitalized) folder does not exist. Open Settings > Storage and choose a valid local folder."
+            viewModel.errorMessage = t("\(targetLabel.capitalized) folder does not exist. Open Settings > Storage and choose a valid local folder.", "\(targetLabel)文件夹不存在。请打开 设置 > 存储，选择有效的本地文件夹。")
             return false
         }
 
@@ -477,7 +529,7 @@ struct SettingsWindowView: View {
                     VStack(alignment: .leading, spacing: AppSpacing.large) {
                         switch selectedTab {
                         case .ai:
-                            AIAndProvidersSettingsView(viewModel: viewModel)
+                            AIAndProvidersSettingsView(viewModel: viewModel, language: appLanguage)
                         case .vault:
                             StorageSettingsView(
                                 storageTarget: $storageTarget,
@@ -485,14 +537,14 @@ struct SettingsWindowView: View {
                                 folderName: $folderName,
                                 joplinPort: $joplinPort,
                                 joplinToken: $joplinToken,
-                                joplinNotebook: $joplinNotebook
+                                joplinNotebook: $joplinNotebook,
+                                language: appLanguage
                             )
                         case .prompt:
-                            PromptSettingsView(viewModel: viewModel)
-                        case .appearance:
-                            AppearanceSettingsView(
-                                appLanguage: $appLanguage,
-                                appThemeMode: $appThemeMode
+                            PromptSettingsView(viewModel: viewModel, language: appLanguage)
+                        case .language:
+                            LanguageSettingsView(
+                                appLanguage: $appLanguage
                             )
                         }
                     }
@@ -505,6 +557,11 @@ struct SettingsWindowView: View {
         }
         .frame(minWidth: 580, minHeight: 400)
         .background(AppColors.background)
+        .preferredColorScheme(selectedThemeMode.colorScheme)
+    }
+
+    private var selectedThemeMode: AppThemeMode {
+        AppThemeMode(rawValue: appThemeMode) ?? .light
     }
 }
 
@@ -513,7 +570,7 @@ enum SettingsTab: String, CaseIterable {
     case ai = "AI"
     case vault = "Storage"
     case prompt = "Prompt"
-    case appearance = "Appearance"
+    case language = "Language"
     
     func title(language: String) -> String {
         switch self {
@@ -523,8 +580,8 @@ enum SettingsTab: String, CaseIterable {
             return AppText.text("Storage", "存储", language: language)
         case .prompt:
             return AppText.text("Prompt", "提示词", language: language)
-        case .appearance:
-            return AppText.text("Appearance", "外观", language: language)
+        case .language:
+            return AppText.text("Language", "语言", language: language)
         }
     }
     
@@ -533,7 +590,7 @@ enum SettingsTab: String, CaseIterable {
         case .ai: return "sparkles"
         case .vault: return "folder.fill"
         case .prompt: return "quote.bubble.fill"
-        case .appearance: return "paintpalette.fill"
+        case .language: return "globe"
         }
     }
 }
@@ -563,13 +620,14 @@ struct SettingsSidebarButton: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(isSelected ? AppColors.active : AppColors.primary)
+        .foregroundStyle(isSelected ? AppColors.activeStrong : AppColors.primary)
     }
 }
 
 // MARK: - Settings Subviews
 struct AIAndProvidersSettingsView: View {
     @ObservedObject var viewModel: ContentViewModel
+    let language: String
     @State private var showAPIKey = false
     
     var body: some View {
@@ -578,11 +636,11 @@ struct AIAndProvidersSettingsView: View {
                 HStack(spacing: AppSpacing.small) {
                     Image(systemName: viewModel.aiConfigurationStatus.isReady ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(viewModel.aiConfigurationStatus.isReady ? .green : .red)
+                        .foregroundStyle(viewModel.aiConfigurationStatus.isReady ? AppColors.success : AppColors.error)
                     
                     Text(viewModel.aiConfigurationStatus.message)
                         .font(AppTypography.bodyMedium)
-                        .foregroundStyle(viewModel.aiConfigurationStatus.isReady ? .green : .red)
+                        .foregroundStyle(viewModel.aiConfigurationStatus.isReady ? AppColors.success : AppColors.error)
                         .lineLimit(1)
                 }
             }
@@ -590,7 +648,7 @@ struct AIAndProvidersSettingsView: View {
             .appSurface(viewModel.aiConfigurationStatus.isReady ? .selected : .muted)
             
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                AppSectionHeader(title: "AI Provider", systemImage: "brain.head.profile")
+                AppSectionHeader(title: t("AI Provider", "AI 服务商"), systemImage: "brain.head.profile")
                 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140))], spacing: AppSpacing.small) {
                     ForEach(viewModel.availableProviders, id: \.self) { provider in
@@ -607,32 +665,36 @@ struct AIAndProvidersSettingsView: View {
             .appSurface(.muted)
             
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                AppSectionHeader(title: "Model & Endpoint", systemImage: "cpu")
+                AppSectionHeader(title: t("Model & Endpoint", "模型和 Endpoint"), systemImage: "cpu")
                 
                 Divider()
 
                 if viewModel.selectedProvider == "Custom" {
-                    SettingsField(label: "API Format") {
+                    SettingsField(label: t("API Format", "API 格式")) {
                         Picker("", selection: $viewModel.customAPIFormat) {
                             ForEach(CustomAPIFormat.allCases) { format in
                                 Text(format.rawValue).tag(format)
                             }
                         }
                         .pickerStyle(.segmented)
+                        .tint(AppColors.active)
+                        .controlSize(.regular)
                         .frame(maxWidth: 360, alignment: .leading)
                     }
                 }
                 
-                SettingsField(label: "Model") {
+                SettingsField(label: t("Model", "模型")) {
                     VStack(alignment: .leading, spacing: AppSpacing.small) {
                         if !viewModel.availableModels.isEmpty {
                             Picker("", selection: modelPickerSelection) {
                                 ForEach(viewModel.availableModels, id: \.self) { model in
                                     Text(model).tag(model)
                                 }
-                                Text("Custom model ID").tag(customModelTag)
+                                Text(t("Custom model ID", "自定义模型 ID")).tag(customModelTag)
                             }
                             .pickerStyle(.menu)
+                            .tint(AppColors.active)
+                            .controlSize(.regular)
                             .frame(maxWidth: 260, alignment: .leading)
                         }
                         
@@ -643,7 +705,7 @@ struct AIAndProvidersSettingsView: View {
                     }
                 }
                 
-                SettingsField(label: viewModel.usesEditableEndpoint ? "API Endpoint" : "Endpoint") {
+                SettingsField(label: viewModel.usesEditableEndpoint ? t("API Endpoint", "API Endpoint") : "Endpoint") {
                     if viewModel.usesEditableEndpoint {
                         VStack(alignment: .leading, spacing: AppSpacing.small) {
                             HStack(spacing: AppSpacing.small) {
@@ -652,9 +714,10 @@ struct AIAndProvidersSettingsView: View {
 
                                 if viewModel.selectedProvider != "Custom" {
                                     SecondaryButton(
-                                        label: "Use Default",
+                                        label: t("Use Default", "使用默认值"),
                                         systemImage: "arrow.counterclockwise",
-                                        action: { viewModel.restoreDefaultEndpoint() }
+                                        action: { viewModel.restoreDefaultEndpoint() },
+                                        tint: AppColors.settings
                                     )
                                 }
                             }
@@ -678,41 +741,37 @@ struct AIAndProvidersSettingsView: View {
             .appSurface(.muted)
             
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                AppSectionHeader(title: "API Credentials", systemImage: "key.fill")
+                AppSectionHeader(title: t("API Credentials", "API 凭证"), systemImage: "key.fill")
                 
                 HStack(spacing: AppSpacing.small) {
                     if showAPIKey {
                         TextField(apiKeyPlaceholder(for: viewModel.selectedProvider), text: $viewModel.apiKey)
                             .textFieldStyle(.roundedBorder)
                     } else {
-                        SecureField("Enter your API key", text: $viewModel.apiKey)
+                        SecureField(t("Enter your API key", "输入 API Key"), text: $viewModel.apiKey)
                             .textFieldStyle(.roundedBorder)
                     }
-                    Button(action: { showAPIKey.toggle() }) {
-                        Image(systemName: showAPIKey ? "eye.slash.fill" : "eye.fill")
-                            .foregroundStyle(AppColors.secondary)
-                    }
-                    .buttonStyle(.plain)
+                    IconButton(
+                        systemImage: showAPIKey ? "eye.slash.fill" : "eye.fill",
+                        action: { showAPIKey.toggle() },
+                        help: showAPIKey ? t("Hide API key", "隐藏 API Key") : t("Show API key", "显示 API Key"),
+                        tint: AppColors.settings
+                    )
                 }
                 
                 HStack(spacing: AppSpacing.medium) {
-                    Button(action: { Task { await viewModel.testAIConnection() } }) {
-                        HStack(spacing: AppSpacing.small) {
-                            if viewModel.isTestingAIConnection {
-                                ProgressView()
-                                    .scaleEffect(0.7)
-                            } else {
-                                Image(systemName: "bolt.horizontal.circle.fill")
-                            }
-                            Text(viewModel.isTestingAIConnection ? "Testing..." : "Test Connection")
-                        }
-                    }
-                    .disabled(viewModel.isTestingAIConnection)
+                    SecondaryButton(
+                        label: viewModel.isTestingAIConnection ? t("Testing...", "测试中...") : t("Test Connection", "测试连接"),
+                        systemImage: "bolt.horizontal.circle.fill",
+                        action: { Task { await viewModel.testAIConnection() } },
+                        isEnabled: !viewModel.isTestingAIConnection,
+                        tint: AppColors.organize
+                    )
                     
                     if let testMessage = viewModel.aiConnectionTestMessage {
                         Text(testMessage)
                             .font(AppTypography.caption)
-                            .foregroundStyle(viewModel.aiConnectionTestSucceeded == true ? .green : .red)
+                            .foregroundStyle(viewModel.aiConnectionTestSucceeded == true ? AppColors.success : AppColors.error)
                             .lineLimit(2)
                     }
                 }
@@ -756,11 +815,11 @@ struct AIAndProvidersSettingsView: View {
     private func providerKind(for name: String) -> String {
         switch name {
         case "OpenRouter", "AnyRouter":
-            return "Gateway"
+            return t("Gateway", "网关")
         case "Custom":
-            return "Compatible"
+            return t("Compatible", "兼容")
         default:
-            return "Official"
+            return t("Official", "官方")
         }
     }
     
@@ -823,6 +882,10 @@ struct AIAndProvidersSettingsView: View {
         
         return viewModel.currentURL?.absoluteString ?? "N/A"
     }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
+    }
 }
 
 struct ProviderChoiceButton: View {
@@ -841,7 +904,7 @@ struct ProviderChoiceButton: View {
                     Spacer()
                     Text(kind)
                         .font(AppTypography.caption)
-                        .foregroundStyle(isSelected ? .white.opacity(0.85) : AppColors.secondary)
+                        .foregroundStyle(isSelected ? AppColors.activeInk.opacity(0.78) : AppColors.secondary)
                 }
                 
                 Text(name)
@@ -852,12 +915,8 @@ struct ProviderChoiceButton: View {
             .frame(maxWidth: .infinity, minHeight: 74, alignment: .leading)
             .padding(AppSpacing.medium)
             .background(isSelected ? AppColors.active : AppColors.surfaceRaised)
-            .foregroundStyle(isSelected ? .white : AppColors.primary)
+            .foregroundStyle(isSelected ? AppColors.activeInk : AppColors.primary)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.large))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadius.large)
-                    .stroke(isSelected ? AppColors.active : AppColors.subtleBorder, lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
     }
@@ -870,6 +929,7 @@ struct StorageSettingsView: View {
     @Binding var joplinPort: String
     @Binding var joplinToken: String
     @Binding var joplinNotebook: String
+    let language: String
 
     private var resolvedVaultPath: String {
         vaultPath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -884,30 +944,33 @@ struct StorageSettingsView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.large) {
-            SettingsSection(title: "Storage Target", icon: "externaldrive.fill") {
-                SettingsField(label: "Target") {
+            SettingsSection(title: t("Storage Target", "存储目标"), icon: "externaldrive.fill") {
+                SettingsField(label: t("Target", "目标")) {
                     Picker("", selection: storageTargetBinding) {
                         ForEach(StorageTarget.allCases) { target in
                             Text(target.rawValue).tag(target.rawValue)
                         }
                     }
                     .pickerStyle(.segmented)
+                    .tint(AppColors.active)
+                    .controlSize(.regular)
                     .frame(maxWidth: 280)
                 }
             }
 
             if selectedStorageTarget == .obsidian || selectedStorageTarget == .localFolder {
                 SettingsSection(title: localStorageTitle, icon: "folder.fill") {
-                    SettingsField(label: selectedStorageTarget == .obsidian ? "Vault Path" : "Storage Folder") {
+                    SettingsField(label: selectedStorageTarget == .obsidian ? t("Vault Path", "仓库路径") : t("Storage Folder", "存储文件夹")) {
                         VStack(alignment: .leading, spacing: AppSpacing.small) {
                             HStack(spacing: AppSpacing.small) {
                                 TextField(localStoragePlaceholder, text: $vaultPath)
                                     .textFieldStyle(.roundedBorder)
 
                                 SecondaryButton(
-                                    label: "Choose Folder",
+                                    label: t("Choose Folder", "选择文件夹"),
                                     systemImage: "folder",
-                                    action: chooseLocalFolder
+                                    action: chooseLocalFolder,
+                                    tint: AppColors.save
                                 )
                             }
 
@@ -922,35 +985,35 @@ struct StorageSettingsView: View {
                         }
                     }
                     if selectedStorageTarget == .obsidian {
-                        SettingsField(label: "Inbox Folder") {
+                        SettingsField(label: t("Inbox Folder", "Inbox 文件夹")) {
                             TextField("Inbox", text: $folderName).textFieldStyle(.roundedBorder)
                         }
                     } else {
-                        Text("Markdown files and attachments are saved directly into this folder.")
+                        Text(t("Markdown files and attachments are saved directly into this folder.", "Markdown 文件和附件会直接保存到这个文件夹。"))
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             } else {
-                SettingsSection(title: "Joplin Configuration", icon: "tray.full.fill") {
-                    SettingsField(label: "Web Clipper Port") {
+                SettingsSection(title: t("Joplin Configuration", "Joplin 配置"), icon: "tray.full.fill") {
+                    SettingsField(label: t("Web Clipper Port", "Web Clipper 端口")) {
                         TextField("41184", text: $joplinPort)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 160)
                     }
 
-                    SettingsField(label: "API Token") {
-                        SecureField("Paste Joplin Web Clipper token", text: $joplinToken)
+                    SettingsField(label: t("API Token", "API Token")) {
+                        SecureField(t("Paste Joplin Web Clipper token", "粘贴 Joplin Web Clipper token"), text: $joplinToken)
                             .textFieldStyle(.roundedBorder)
                     }
 
-                    SettingsField(label: "Notebook") {
+                    SettingsField(label: t("Notebook", "笔记本")) {
                         TextField("Inbox", text: $joplinNotebook)
                             .textFieldStyle(.roundedBorder)
                     }
 
-                    Text("Enable Web Clipper in Joplin, then copy the authorization token from Joplin settings. The app saves notes through Joplin's local API.")
+                    Text(t("Enable Web Clipper in Joplin, then copy the authorization token from Joplin settings. The app saves notes through Joplin's local API.", "请在 Joplin 中启用 Web Clipper，然后从 Joplin 设置复制授权 token。本应用会通过 Joplin 本地 API 保存笔记。"))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -973,15 +1036,15 @@ struct StorageSettingsView: View {
     private var vaultStatusText: String {
         if resolvedVaultPath.isEmpty {
             return selectedStorageTarget == .obsidian
-                ? "Choose your Obsidian vault folder before organizing or saving."
-                : "Choose a local folder before organizing or saving."
+                ? t("Choose your Obsidian vault folder before organizing or saving.", "整理或保存前请选择 Obsidian 仓库文件夹。")
+                : t("Choose a local folder before organizing or saving.", "整理或保存前请选择本地文件夹。")
         }
 
-        return isVaultPathValid ? "Folder is available." : "Folder not found. Choose an existing local folder."
+        return isVaultPathValid ? t("Folder is available.", "文件夹可用。") : t("Folder not found. Choose an existing local folder.", "找不到文件夹。请选择已存在的本地文件夹。")
     }
 
     private var localStorageTitle: String {
-        selectedStorageTarget == .obsidian ? "Obsidian Configuration" : "Local Folder Configuration"
+        selectedStorageTarget == .obsidian ? t("Obsidian Configuration", "Obsidian 配置") : t("Local Folder Configuration", "本地文件夹配置")
     }
 
     private var localStoragePlaceholder: String {
@@ -990,7 +1053,7 @@ struct StorageSettingsView: View {
 
     private func chooseLocalFolder() {
         let panel = NSOpenPanel()
-        panel.title = selectedStorageTarget == .obsidian ? "Choose Obsidian Vault Folder" : "Choose Local Storage Folder"
+        panel.title = selectedStorageTarget == .obsidian ? t("Choose Obsidian Vault Folder", "选择 Obsidian 仓库文件夹") : t("Choose Local Storage Folder", "选择本地存储文件夹")
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
@@ -1000,49 +1063,28 @@ struct StorageSettingsView: View {
             vaultPath = url.path
         }
     }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
+    }
 }
 
-struct AppearanceSettingsView: View {
+struct LanguageSettingsView: View {
     @Binding var appLanguage: String
-    @Binding var appThemeMode: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.large) {
-            SettingsSection(title: "Language", icon: "globe") {
-                SettingsField(label: "Interface Language") {
+            SettingsSection(title: AppText.text("Language", "语言", language: appLanguage), icon: "globe") {
+                SettingsField(label: AppText.text("Interface Language", "界面语言", language: appLanguage)) {
                     Picker("", selection: $appLanguage) {
                         ForEach(AppLanguage.allCases) { language in
                             Text(language.rawValue).tag(language.rawValue)
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(maxWidth: 320)
-                }
-            }
-
-            SettingsSection(title: "Theme", icon: "circle.lefthalf.filled") {
-                SettingsField(label: "Color Mode") {
-                    Picker("", selection: $appThemeMode) {
-                        ForEach(AppThemeMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode.rawValue)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 220)
-                }
-
-                HStack(spacing: AppSpacing.small) {
-                    Circle()
-                        .fill(AppColors.active)
-                        .frame(width: 18, height: 18)
-
-                    RoundedRectangle(cornerRadius: AppRadius.small)
-                        .fill(AppColors.surfaceRaised)
-                        .frame(width: 42, height: 22)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppRadius.small)
-                                .stroke(AppColors.subtleBorder, lineWidth: 1)
-                        )
+                    .tint(AppColors.active)
+                    .controlSize(.regular)
+                    .frame(maxWidth: 280, alignment: .leading)
                 }
             }
         }
@@ -1051,54 +1093,57 @@ struct AppearanceSettingsView: View {
 
 struct PromptSettingsView: View {
     @ObservedObject var viewModel: ContentViewModel
+    let language: String
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.large) {
-            SettingsSection(title: "Title Format", icon: "textformat") {
+            SettingsSection(title: t("Title Format", "标题格式"), icon: "textformat") {
                 VStack(alignment: .leading, spacing: AppSpacing.medium) {
                     HStack {
-                        Text(viewModel.customTitleFormat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Using AI Default Title" : "Custom Title Format Active")
+                        Text(viewModel.customTitleFormat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? t("Using AI Default Title", "使用 AI 默认标题") : t("Custom Title Format Active", "自定义标题格式已启用"))
                             .font(AppTypography.captionMedium)
-                            .foregroundStyle(viewModel.customTitleFormat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.secondary : AppColors.active)
+                            .foregroundStyle(viewModel.customTitleFormat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.secondary : AppColors.activeStrong)
 
                         Spacer()
 
                         SecondaryButton(
-                            label: "Restore Default",
+                            label: t("Restore Default", "恢复默认"),
                             systemImage: "arrow.counterclockwise",
                             action: { viewModel.restoreDefaultTitleFormat() },
-                            isEnabled: !viewModel.customTitleFormat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            isEnabled: !viewModel.customTitleFormat.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                            tint: AppColors.settings
                         )
                     }
 
                     TextField("Example: {{date}} - {{source}} - {{topic}}", text: $viewModel.customTitleFormat)
                         .textFieldStyle(.roundedBorder)
 
-                    Text("Placeholders: {{date}}, {{topic}}, {{source}}, {{type}}, {{project}}, {{person}}, {{language}}")
+                    Text(t("Placeholders", "占位符") + ": {{date}}, {{topic}}, {{source}}, {{type}}, {{project}}, {{person}}, {{language}}")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
-            SettingsSection(title: "AI Prompts", icon: "quote.bubble.fill") {
+            SettingsSection(title: t("AI Prompts", "AI 提示词"), icon: "quote.bubble.fill") {
                 VStack(alignment: .leading, spacing: AppSpacing.medium) {
                     HStack {
-                        Text(viewModel.isUsingCustomPrompt ? "Custom Prompt Active" : "Using System Default Prompt")
+                        Text(viewModel.isUsingCustomPrompt ? t("Custom Prompt Active", "自定义提示词已启用") : t("Using System Default Prompt", "使用系统默认提示词"))
                             .font(AppTypography.captionMedium)
-                            .foregroundStyle(viewModel.isUsingCustomPrompt ? AppColors.active : AppColors.secondary)
+                            .foregroundStyle(viewModel.isUsingCustomPrompt ? AppColors.activeStrong : AppColors.secondary)
                         
                         Spacer()
                         
                         SecondaryButton(
-                            label: "Restore Default",
+                            label: t("Restore Default", "恢复默认"),
                             systemImage: "arrow.counterclockwise",
                             action: { viewModel.restoreDefaultPrompt() },
-                            isEnabled: viewModel.isUsingCustomPrompt
+                            isEnabled: viewModel.isUsingCustomPrompt,
+                            tint: AppColors.settings
                         )
                     }
                     
-                    Text("System Prompt")
+                    Text(t("System Prompt", "系统提示词"))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondary)
                     
@@ -1118,6 +1163,10 @@ struct PromptSettingsView: View {
                 viewModel.customSystemPrompt = newValue
             }
         )
+    }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
     }
 }
 

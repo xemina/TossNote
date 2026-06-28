@@ -267,11 +267,11 @@ final class OpenAICompatibleProvider: AIProviderProtocol {
     - Related keywords -> 可关联关键词
     - Organized Notes -> 整理内容
     - Action Items -> 待处理
-    - Original Input -> 原始输入
+    - Original Input -> 原文
     
     Formatting constraints:
     - Do not wrap the entire response in a code fence.
-    - A fenced text block is allowed only inside the Original Input / 原始输入 section.
+    - A fenced text block is allowed only inside the Original Input / 原文 section.
     - Tags must be concise, without the leading # character.
     - Prefer 3-8 tags. Use English tags for English input and Chinese tags for Chinese input.
     - Keep status as unreviewed by default because a captured note still needs human review after saving.

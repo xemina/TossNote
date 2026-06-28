@@ -14,11 +14,14 @@ final class ContentViewModel: ObservableObject {
         didSet {
             guard selectedProvider != oldValue else { return }
             guard !isLoadingStoredSettings else { return }
-            KeychainStore.save(apiKey, account: apiKeyAccount(for: oldValue))
+            if isAPIKeyLoadedForCurrentProvider {
+                LocalSecretStore.save(apiKey, account: apiKeyAccount(for: oldValue))
+            }
             UserDefaults.standard.set(selectedModel, forKey: "modelName_\(oldValue)")
             UserDefaults.standard.set(customAPIURL, forKey: "apiURL_\(oldValue)")
             isLoadingStoredSettings = true
             apiKey = storedAPIKey(for: selectedProvider)
+            isAPIKeyLoadedForCurrentProvider = true
             selectedModel = storedModel(for: selectedProvider)
             customAPIURL = storedEndpoint(for: selectedProvider)
             updateAvailableModels()
@@ -41,7 +44,8 @@ final class ContentViewModel: ObservableObject {
         didSet {
             guard apiKey != oldValue else { return }
             guard !isLoadingStoredSettings else { return }
-            persistSettings()
+            isAPIKeyLoadedForCurrentProvider = true
+            persistSettings(includeAPIKey: true)
             clearAIConnectionTest()
             refreshAIConfigurationStatus()
         }
@@ -92,6 +96,7 @@ final class ContentViewModel: ObservableObject {
     private let client = OpenAIClient()
     private let registry = AIProviderRegistry.shared
     private var isLoadingStoredSettings = false
+    private var isAPIKeyLoadedForCurrentProvider = false
     
     var availableProviders: [String] {
         registry.allProviderNames()
@@ -164,6 +169,7 @@ final class ContentViewModel: ObservableObject {
         selectedProvider = UserDefaults.standard.string(forKey: "aiProvider") ?? "OpenAI"
         selectedModel = storedModel(for: selectedProvider)
         apiKey = storedAPIKey(for: selectedProvider)
+        isAPIKeyLoadedForCurrentProvider = true
         customAPIURL = storedEndpoint(for: selectedProvider)
         customAPIFormat = storedCustomAPIFormat()
         customSystemPrompt = UserDefaults.standard.string(forKey: "customSystemPrompt") ?? ""
@@ -171,16 +177,18 @@ final class ContentViewModel: ObservableObject {
     }
     
     func saveSettings() {
-        persistSettings()
+        persistSettings(includeAPIKey: isAPIKeyLoadedForCurrentProvider)
         refreshAIConfigurationStatus()
     }
     
-    private func persistSettings() {
+    private func persistSettings(includeAPIKey: Bool = false) {
         guard !isLoadingStoredSettings else { return }
         UserDefaults.standard.set(selectedProvider, forKey: "aiProvider")
         UserDefaults.standard.set(selectedModel, forKey: "modelName")
         UserDefaults.standard.set(selectedModel, forKey: "modelName_\(selectedProvider)")
-        KeychainStore.save(apiKey, account: apiKeyAccount(for: selectedProvider))
+        if includeAPIKey {
+            LocalSecretStore.save(apiKey, account: apiKeyAccount(for: selectedProvider))
+        }
         UserDefaults.standard.set(customAPIURL, forKey: "customAPIURL")
         UserDefaults.standard.set(customAPIURL, forKey: "apiURL_\(selectedProvider)")
         UserDefaults.standard.set(customAPIFormat.rawValue, forKey: "customAPIFormat")
@@ -245,9 +253,9 @@ final class ContentViewModel: ObservableObject {
 
     private func storedAPIKey(for provider: String) -> String {
         let account = apiKeyAccount(for: provider)
-        let keychainValue = KeychainStore.read(account: account)
-        if !keychainValue.isEmpty {
-            return keychainValue
+        let localValue = LocalSecretStore.read(account: account)
+        if !localValue.isEmpty {
+            return localValue
         }
 
         let legacyKey = "apiKey_\(provider)"
@@ -256,13 +264,27 @@ final class ContentViewModel: ObservableObject {
             return ""
         }
 
-        KeychainStore.save(legacyValue, account: account)
+        LocalSecretStore.save(legacyValue, account: account)
         UserDefaults.standard.removeObject(forKey: legacyKey)
         return legacyValue
     }
 
     private func apiKeyAccount(for provider: String) -> String {
         "ai-api-key-\(provider)"
+    }
+
+    func loadAPIKeyForSettingsIfNeeded() {
+        ensureAPIKeyLoaded()
+        refreshAIConfigurationStatus()
+    }
+
+    private func ensureAPIKeyLoaded() {
+        guard !isAPIKeyLoadedForCurrentProvider else { return }
+
+        isLoadingStoredSettings = true
+        apiKey = storedAPIKey(for: selectedProvider)
+        isAPIKeyLoadedForCurrentProvider = true
+        isLoadingStoredSettings = false
     }
     
     private func storedEndpoint(for provider: String) -> String {
@@ -287,7 +309,11 @@ final class ContentViewModel: ObservableObject {
         return format
     }
     
-    func validateAISetup() -> (isValid: Bool, message: String?) {
+    func validateAISetup(loadStoredAPIKey: Bool = true) -> (isValid: Bool, message: String?) {
+        if loadStoredAPIKey {
+            ensureAPIKeyLoaded()
+        }
+
         let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedModel = selectedModel.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedEndpoint = (usesEditableEndpoint ? customAPIURL : defaultURL)
@@ -321,7 +347,7 @@ final class ContentViewModel: ObservableObject {
     }
     
     func refreshAIConfigurationStatus() {
-        let validation = validateAISetup()
+        let validation = validateAISetup(loadStoredAPIKey: false)
         
         if validation.isValid {
             let modelPart = selectedModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -356,6 +382,10 @@ final class ContentViewModel: ObservableObject {
         let trimmedEndpoint = (usesEditableEndpoint ? customAPIURL : defaultURL)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
+        if !isAPIKeyLoadedForCurrentProvider {
+            return "AI not checked: \(selectedProvider) API key not loaded"
+        }
+
         if trimmedKey.isEmpty {
             return "AI unavailable: \(selectedProvider) API key missing"
         }
@@ -398,8 +428,8 @@ final class ContentViewModel: ObservableObject {
     }
     
     func testAIConnection() async {
-        refreshAIConfigurationStatus()
         let validation = validateAISetup()
+        refreshAIConfigurationStatus()
         
         guard validation.isValid else {
             aiConnectionTestSucceeded = false
@@ -445,6 +475,7 @@ final class ContentViewModel: ObservableObject {
     
     func organize(input: String) async -> String? {
         let validation = validateAISetup()
+        refreshAIConfigurationStatus()
         
         guard validation.isValid else {
             errorMessage = validation.message

@@ -19,7 +19,7 @@ struct StatusBadge: View {
         var color: Color {
             switch self {
             case .waiting: return AppColors.secondary
-            case .processing: return AppColors.active
+            case .processing: return AppColors.activeStrong
             case .completed: return AppColors.success
             case .failed: return AppColors.error
             }
@@ -29,7 +29,7 @@ struct StatusBadge: View {
             switch self {
             case .waiting: return AppColors.subtleBackground
             case .processing: return AppColors.dropBackground
-            case .completed: return Color.green.opacity(0.05)
+            case .completed: return AppColors.success.opacity(0.08)
             case .failed: return AppColors.error.opacity(0.05)
             }
         }
