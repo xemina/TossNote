@@ -88,15 +88,45 @@ final class ContentExtractor: @unchecked Sendable {
     func extract(fromWebURL url: URL) async -> String {
         let platform = platformName(for: url)
 
+        guard URLSafety.isAllowedPublicWebURL(url) else {
+            return """
+            Source: \(url.absoluteString)
+            Type: web_url
+            Platform: \(platform)
+
+            This URL was not fetched because local, private-network, non-HTTP, or otherwise unsafe web addresses are blocked.
+            """
+        }
+
         do {
             let request = webRequest(for: url)
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let delegate = SafeWebRedirectDelegate()
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.timeoutIntervalForRequest = 20
+            configuration.timeoutIntervalForResource = 30
+            configuration.httpCookieStorage = nil
+            let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+            defer { session.invalidateAndCancel() }
+            let (data, response) = try await session.data(for: request)
             let httpResponse = response as? HTTPURLResponse
+            let resolvedURL = httpResponse?.url ?? url
+
+            guard URLSafety.isAllowedPublicWebURL(resolvedURL) else {
+                return """
+                Source: \(url.absoluteString)
+                Resolved URL: \(resolvedURL.absoluteString)
+                Type: web_url
+                Platform: \(platform)
+
+                This URL was not fetched because it redirected to a local, private-network, or otherwise unsafe address.
+                """
+            }
+
             return """
             \(formatWebExtractionResult(
                 data: data,
                 originalURL: url,
-                resolvedURL: httpResponse?.url ?? url,
+                resolvedURL: resolvedURL,
                 platform: platform,
                 statusCode: httpResponse?.statusCode,
                 contentType: httpResponse?.value(forHTTPHeaderField: "Content-Type")
@@ -272,14 +302,6 @@ final class ContentExtractor: @unchecked Sendable {
         // We no longer need to reference the image file path in the content returned by the extractor.
         // The ContentView will manage the image display via InputImageItem.
         return tagsLine.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func writeImageToTemp(_ image: NSImage) -> URL? {
-        guard let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let data = rep.representation(using: .png, properties: [:]) else { return nil }
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let filename = "obsidian_img_\(UUID().uuidString).png"
-        let url = tempDir.appendingPathComponent(filename)
-        do { try data.write(to: url); return url } catch { return nil }
     }
 
     // Classify image using Vision's built-in classifier (returns top labels)

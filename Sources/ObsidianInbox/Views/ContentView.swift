@@ -8,7 +8,6 @@ struct ContentView: View {
     @State private var capturedAttachments: [CapturedAttachment] = []
     @State private var hasPendingCaptureProcessing = false
     @State private var inputWordCount = 0
-    @State private var showErrorAlert = false
     @State private var showSuccessMessage = false
     @State private var successMessage = ""
     
@@ -19,10 +18,9 @@ struct ContentView: View {
     @AppStorage("vaultPath") private var vaultPath = ""
     @AppStorage("folderName") private var folderName = "Inbox"
     @AppStorage("joplinPort") private var joplinPort = "41184"
-    @AppStorage("joplinToken") private var joplinToken = ""
     @AppStorage("joplinNotebook") private var joplinNotebook = "Inbox"
+    @State private var joplinToken = ""
     
-    @State private var capturePanelRef: CapturePanel?
     @State private var settingsWindow: NSWindow?
     @State private var settingsWindowDelegate: SettingsWindowDelegate?
     
@@ -78,7 +76,13 @@ struct ContentView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .onAppear(perform: checkAIConfigurationOnStartup)
+        .onAppear {
+            loadSecureSettings()
+            checkAIConfigurationOnStartup()
+        }
+        .onChange(of: joplinToken) { newValue in
+            KeychainStore.save(newValue, account: joplinTokenAccount)
+        }
         .alert("⚠️ Configuration Issue", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }
@@ -102,6 +106,27 @@ struct ContentView: View {
         } else {
             viewModel.errorMessage = nil
         }
+    }
+
+    private var joplinTokenAccount: String {
+        "joplin-web-clipper-token"
+    }
+
+    private func loadSecureSettings() {
+        let keychainToken = KeychainStore.read(account: joplinTokenAccount)
+        if !keychainToken.isEmpty {
+            joplinToken = keychainToken
+            return
+        }
+
+        guard let legacyToken = UserDefaults.standard.string(forKey: "joplinToken"),
+              !legacyToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+
+        KeychainStore.save(legacyToken, account: joplinTokenAccount)
+        UserDefaults.standard.removeObject(forKey: "joplinToken")
+        joplinToken = legacyToken
     }
 
     private var activeWordCount: Int {

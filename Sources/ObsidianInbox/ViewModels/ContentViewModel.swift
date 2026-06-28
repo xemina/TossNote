@@ -14,11 +14,11 @@ final class ContentViewModel: ObservableObject {
         didSet {
             guard selectedProvider != oldValue else { return }
             guard !isLoadingStoredSettings else { return }
-            UserDefaults.standard.set(apiKey, forKey: "apiKey_\(oldValue)")
+            KeychainStore.save(apiKey, account: apiKeyAccount(for: oldValue))
             UserDefaults.standard.set(selectedModel, forKey: "modelName_\(oldValue)")
             UserDefaults.standard.set(customAPIURL, forKey: "apiURL_\(oldValue)")
             isLoadingStoredSettings = true
-            apiKey = UserDefaults.standard.string(forKey: "apiKey_\(selectedProvider)") ?? ""
+            apiKey = storedAPIKey(for: selectedProvider)
             selectedModel = storedModel(for: selectedProvider)
             customAPIURL = storedEndpoint(for: selectedProvider)
             updateAvailableModels()
@@ -163,7 +163,7 @@ final class ContentViewModel: ObservableObject {
         
         selectedProvider = UserDefaults.standard.string(forKey: "aiProvider") ?? "OpenAI"
         selectedModel = storedModel(for: selectedProvider)
-        apiKey = UserDefaults.standard.string(forKey: "apiKey_\(selectedProvider)") ?? ""
+        apiKey = storedAPIKey(for: selectedProvider)
         customAPIURL = storedEndpoint(for: selectedProvider)
         customAPIFormat = storedCustomAPIFormat()
         customSystemPrompt = UserDefaults.standard.string(forKey: "customSystemPrompt") ?? ""
@@ -180,7 +180,7 @@ final class ContentViewModel: ObservableObject {
         UserDefaults.standard.set(selectedProvider, forKey: "aiProvider")
         UserDefaults.standard.set(selectedModel, forKey: "modelName")
         UserDefaults.standard.set(selectedModel, forKey: "modelName_\(selectedProvider)")
-        UserDefaults.standard.set(apiKey, forKey: "apiKey_\(selectedProvider)")
+        KeychainStore.save(apiKey, account: apiKeyAccount(for: selectedProvider))
         UserDefaults.standard.set(customAPIURL, forKey: "customAPIURL")
         UserDefaults.standard.set(customAPIURL, forKey: "apiURL_\(selectedProvider)")
         UserDefaults.standard.set(customAPIFormat.rawValue, forKey: "customAPIFormat")
@@ -242,6 +242,28 @@ final class ContentViewModel: ObservableObject {
         
         return registry.provider(for: provider)?.defaultModel ?? ""
     }
+
+    private func storedAPIKey(for provider: String) -> String {
+        let account = apiKeyAccount(for: provider)
+        let keychainValue = KeychainStore.read(account: account)
+        if !keychainValue.isEmpty {
+            return keychainValue
+        }
+
+        let legacyKey = "apiKey_\(provider)"
+        guard let legacyValue = UserDefaults.standard.string(forKey: legacyKey),
+              !legacyValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return ""
+        }
+
+        KeychainStore.save(legacyValue, account: account)
+        UserDefaults.standard.removeObject(forKey: legacyKey)
+        return legacyValue
+    }
+
+    private func apiKeyAccount(for provider: String) -> String {
+        "ai-api-key-\(provider)"
+    }
     
     private func storedEndpoint(for provider: String) -> String {
         if let stored = UserDefaults.standard.string(forKey: "apiURL_\(provider)") {
@@ -289,6 +311,10 @@ final class ContentViewModel: ObservableObject {
         
         if apiURL.scheme == nil || apiURL.host == nil {
             return (false, "❌ Invalid API URL format.\n\nPlease check Settings.")
+        }
+
+        guard URLSafety.isSecureRemoteEndpoint(apiURL) else {
+            return (false, "❌ AI endpoint must use HTTPS.\n\nThis protects your API key from being sent over an unencrypted connection.")
         }
         
         return (true, nil)
@@ -347,6 +373,10 @@ final class ContentViewModel: ObservableObject {
               apiURL.host != nil else {
             return "AI unavailable: invalid \(selectedProvider) API URL"
         }
+
+        guard URLSafety.isSecureRemoteEndpoint(apiURL) else {
+            return "AI unavailable: endpoint must use HTTPS"
+        }
         
         return "AI unavailable"
     }
@@ -358,6 +388,7 @@ final class ContentViewModel: ObservableObject {
             || message.contains("Invalid API URL format")
             || message.contains("API endpoint is not configured")
             || message.contains("Model is not configured")
+            || message.contains("AI endpoint must use HTTPS")
             || message.contains("AI Connection Test Failed")
     }
     

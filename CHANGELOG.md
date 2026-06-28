@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format follows Keep a Changelog, and this project uses Semantic Versioning.
 
+## [0.1.2] - 2026-06-28
+
+### Security
+
+- Moved AI provider API keys from UserDefaults to macOS Keychain with automatic migration of existing keys.
+- Moved the Joplin Web Clipper token from AppStorage/UserDefaults to macOS Keychain.
+- Required HTTPS for AI endpoints to avoid sending API keys over unencrypted connections.
+- Blocked web extraction for localhost, `.local`, private-network, link-local, and non-HTTP(S) URLs.
+- Added redirect safety checks and an ephemeral URLSession for web extraction.
+- Added request timeouts and a 50 MB per-attachment upload limit for Joplin saves.
+
 ## [0.1.1] - 2026-06-28
 
 ### Changed

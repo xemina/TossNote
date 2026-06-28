@@ -6,6 +6,8 @@ struct JoplinSavedNote {
 }
 
 final class JoplinWriter: @unchecked Sendable {
+    private let maxAttachmentBytes = 50 * 1024 * 1024
+
     func save(
         markdown: String,
         port: String,
@@ -122,6 +124,9 @@ final class JoplinWriter: @unchecked Sendable {
                 attachment.sourceURL.stopAccessingSecurityScopedResource()
             }
         }
+        if let fileSize = fileSizeBytes(for: attachment.sourceURL), fileSize > maxAttachmentBytes {
+            throw JoplinError.attachmentTooLarge(attachment.sourceURL.lastPathComponent, fileSize)
+        }
         let fileData = try Data(contentsOf: attachment.sourceURL)
         let props = #"{"title":"\#(escapeJSON(filename))"}"#
 
@@ -138,6 +143,7 @@ final class JoplinWriter: @unchecked Sendable {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 30
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
 
@@ -190,6 +196,7 @@ final class JoplinWriter: @unchecked Sendable {
     ) async throws -> Data {
         var request = URLRequest(url: url)
         request.httpMethod = method
+        request.timeoutInterval = 20
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -260,6 +267,10 @@ final class JoplinWriter: @unchecked Sendable {
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
     }
+
+    private func fileSizeBytes(for url: URL) -> Int? {
+        (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
+    }
 }
 
 enum JoplinError: LocalizedError {
@@ -269,6 +280,7 @@ enum JoplinError: LocalizedError {
     case invalidResponse
     case connection(String)
     case server(Int, String)
+    case attachmentTooLarge(String, Int)
 
     var errorDescription: String? {
         switch self {
@@ -284,6 +296,11 @@ enum JoplinError: LocalizedError {
             return "Could not connect to Joplin Web Clipper. Make sure Joplin is running and Web Clipper is enabled. Details: \(message)"
         case .server(let code, let message):
             return "Joplin API error (\(code)): \(message)"
+        case .attachmentTooLarge(let filename, let bytes):
+            let formatter = ByteCountFormatter()
+            formatter.allowedUnits = [.useMB, .useGB]
+            formatter.countStyle = .file
+            return "\(filename) is \(formatter.string(fromByteCount: Int64(bytes))). Joplin uploads are limited to 50 MB per attachment."
         }
     }
 }
