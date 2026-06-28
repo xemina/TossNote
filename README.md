@@ -1,6 +1,6 @@
 # Markdown AI Inbox
 
-Version: `0.1.2`
+Version: `1.0.0`
 
 Markdown AI Inbox is a macOS SwiftUI app for collecting text, links, images, PDFs, Office documents, and other local files, then using an AI provider to turn the captured content into editable Markdown. The final Markdown can be saved to Obsidian, a local folder, or Joplin.
 
@@ -102,7 +102,7 @@ The current version is stored in:
 Create releases with Git tags:
 
 ```bash
-git tag v0.1.2
+git tag v1.0.0
 git push origin main --tags
 ```
 
@@ -115,8 +115,7 @@ git push origin main --tags
 - Web extraction uses an ephemeral URLSession and blocks redirects to unsafe local or private-network addresses.
 - Large files are limited before extraction; Joplin uploads are limited to 50 MB per attachment.
 - Do not commit API keys, local provider tokens, Obsidian vault paths, Joplin tokens, or local assistant configuration.
-- `.gitignore` excludes `.env`, `*.env`, `secrets.*`, `.claude/`, `.DS_Store`, `.build/`, and SwiftPM local metadata.
-- `.claude/` is not required by this app. It is only local assistant tooling configuration and should not exist in the open-source repository.
+- `.gitignore` excludes environment files, secret files, macOS metadata, build artifacts, and SwiftPM local metadata.
 - Before publishing, run a secret scan such as:
 
 ```bash
@@ -133,7 +132,7 @@ MIT
 
 Markdown AI Inbox 是一个 macOS SwiftUI 应用，用来收集文本、链接、图片、PDF、Office 文档和本地文件，然后调用 AI 把这些内容整理成可编辑的 Markdown。最终 Markdown 可以保存到 Obsidian、本地文件夹或 Joplin。
 
-当前版本：`0.1.2`
+当前版本：`1.0.0`
 
 ## 功能
 
@@ -231,7 +230,7 @@ swift build
 发布版本时使用 Git tag：
 
 ```bash
-git tag v0.1.2
+git tag v1.0.0
 git push origin main --tags
 ```
 
@@ -244,8 +243,7 @@ git push origin main --tags
 - 网页提取使用临时 URLSession，并会阻止 redirect 跳转到本地或内网地址。
 - 大文件会在提取前限制；Joplin 单个附件上传限制为 50 MB。
 - 不要提交 API key、本地服务商 token、Obsidian 私人目录、Joplin token 或本地助手配置。
-- `.gitignore` 已忽略 `.env`、`*.env`、`secrets.*`、`.claude/`、`.DS_Store`、`.build/` 和 SwiftPM 本地元数据。
-- `.claude/` 不是应用运行所需文件夹，只是本地 AI 编码助手配置，不应该放进开源仓库。
+- `.gitignore` 已忽略环境文件、密钥文件、macOS 元数据、构建产物和 SwiftPM 本地元数据。
 - 发布前建议运行敏感信息扫描：
 
 ```bash

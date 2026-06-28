@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format follows Keep a Changelog, and this project uses Semantic Versioning.
 
+## [1.0.0] - 2026-06-28
+
+### Added
+
+- First public release of Markdown AI Inbox.
+- Includes capture, local extraction, AI organization, editable Markdown preview, Obsidian save, local folder save, and Joplin save.
+- Includes Keychain-based credential storage and guarded public-web URL extraction.
+
 ## [0.1.2] - 2026-06-28
 
 ### Security
