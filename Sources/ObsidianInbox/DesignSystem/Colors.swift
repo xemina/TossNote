@@ -10,13 +10,13 @@ enum AppColors {
     static let success = Color.green
     static let error = Color.red
     static let warning = Color.orange
-    static let active = Color.blue
+    static let active = Color(red: 0.22, green: 0.48, blue: 0.36)
     static let surface = Color(nsColor: .controlBackgroundColor)
     static let surfaceRaised = Color(nsColor: .textBackgroundColor)
     static let surfaceMuted = Color.gray.opacity(0.06)
-    static let selectedBackground = Color.accentColor.opacity(0.12)
+    static let selectedBackground = active.opacity(0.12)
     static let subtleBackground = Color.gray.opacity(0.05)
-    static let dropBackground = Color.blue.opacity(0.05)
+    static let dropBackground = active.opacity(0.07)
     static let subtleBorder = Color.secondary.opacity(0.18)
     static let strongBorder = Color.secondary.opacity(0.28)
 }

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format follows Keep a Changelog, and this project uses Semantic Versioning.
 
+## [1.1.0] - 2026-06-28
+
+### Added
+
+- Added a Quick Save workflow that organizes captured input and saves the generated Markdown in one action.
+- Added Appearance settings for English/Simplified Chinese preference and light/dark mode.
+- Added a calmer moss-green visual accent for the app chrome and primary actions.
+
 ## [1.0.0] - 2026-06-28
 
 ### Added

@@ -19,6 +19,8 @@ struct ContentView: View {
     @AppStorage("folderName") private var folderName = "Inbox"
     @AppStorage("joplinPort") private var joplinPort = "41184"
     @AppStorage("joplinNotebook") private var joplinNotebook = "Inbox"
+    @AppStorage("appLanguage") private var appLanguage = AppLanguage.english.rawValue
+    @AppStorage("appThemeMode") private var appThemeMode = AppThemeMode.light.rawValue
     @State private var joplinToken = ""
     
     @State private var settingsWindow: NSWindow?
@@ -28,8 +30,10 @@ struct ContentView: View {
         VStack(spacing: 0) {
             TopToolbar(
                 viewModel: viewModel,
+                language: appLanguage,
                 onRead: { pasteFromClipboard() },
                 onOrganize: { Task { await organizeAllItems() } },
+                onQuickSave: { Task { await organizeAndSaveAllItems() } },
                 onSave: { Task { await saveMarkdown() } },
                 onSettings: { openSettingsWindow() }
             )
@@ -69,6 +73,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 800, minHeight: 600)
         .background(AppColors.background)
+        .preferredColorScheme(selectedThemeMode.colorScheme)
         .overlay(alignment: .bottom) {
             if showSuccessMessage {
                 SaveResultToast(message: successMessage)
@@ -147,7 +152,9 @@ struct ContentView: View {
             folderName: $folderName,
             joplinPort: $joplinPort,
             joplinToken: $joplinToken,
-            joplinNotebook: $joplinNotebook
+            joplinNotebook: $joplinNotebook,
+            appLanguage: $appLanguage,
+            appThemeMode: $appThemeMode
         )
         
         let hostingController = NSHostingController(rootView: settingsView)
@@ -211,7 +218,21 @@ struct ContentView: View {
     
     @MainActor
     private func organizeAllItems() async {
-        guard validateStorageConfiguration() else { return }
+        guard let result = await organizeCurrentInput() else { return }
+        markdown = result
+        viewModel.errorMessage = nil
+    }
+
+    @MainActor
+    private func organizeAndSaveAllItems() async {
+        guard let result = await organizeCurrentInput() else { return }
+        markdown = result
+        await saveMarkdown(result)
+    }
+
+    @MainActor
+    private func organizeCurrentInput() async -> String? {
+        guard validateStorageConfiguration() else { return nil }
 
         // First validate AI setup
         let validation = viewModel.validateAISetup()
@@ -220,33 +241,39 @@ struct ContentView: View {
             // Show error in status bar
             viewModel.errorMessage = validation.message
             viewModel.refreshAIConfigurationStatus()
-            return
+            return nil
         }
         
         let input = capturedContent.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !input.isEmpty else {
             viewModel.errorMessage = "No content to organize. Please paste or add some text first."
-            return
+            return nil
         }
         
         guard !hasPendingCaptureProcessing else {
             viewModel.errorMessage = "Some input items are still being processed. Please wait for extraction to finish."
-            return
+            return nil
         }
         
         if let result = await viewModel.organize(input: input) {
-            markdown = result
-            viewModel.errorMessage = nil  // Clear error on success
+            viewModel.errorMessage = nil
+            return result
         }
         // Error message is already set by viewModel.organize()
+        return nil
     }
     
     @MainActor
     private func saveMarkdown() async {
+        await saveMarkdown(markdown)
+    }
+
+    @MainActor
+    private func saveMarkdown(_ markdownToSave: String) async {
         guard validateStorageConfiguration() else { return }
 
-        guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard !markdownToSave.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             viewModel.errorMessage = "No markdown to save. Organize content first."
             return
         }
@@ -255,7 +282,7 @@ struct ContentView: View {
             switch selectedStorageTarget {
             case .obsidian, .localFolder:
                 let savedURL = try writer.save(
-                    markdown: markdown,
+                    markdown: markdownToSave,
                     vaultPath: vaultPath,
                     folderName: folderName,
                     attachments: capturedAttachments,
@@ -267,7 +294,7 @@ struct ContentView: View {
                 showTransientSuccess("Saved to \(targetName): \(savedURL.lastPathComponent)")
             case .joplin:
                 let savedNote = try await joplinWriter.save(
-                    markdown: markdown,
+                    markdown: markdownToSave,
                     port: joplinPort,
                     token: joplinToken,
                     notebookName: joplinNotebook,
@@ -285,6 +312,10 @@ struct ContentView: View {
 
     private var selectedStorageTarget: StorageTarget {
         StorageTarget(rawValue: storageTarget) ?? .obsidian
+    }
+
+    private var selectedThemeMode: AppThemeMode {
+        AppThemeMode(rawValue: appThemeMode) ?? .light
     }
 
     private func validateStorageConfiguration() -> Bool {
@@ -404,6 +435,8 @@ struct SettingsWindowView: View {
     @Binding var joplinPort: String
     @Binding var joplinToken: String
     @Binding var joplinNotebook: String
+    @Binding var appLanguage: String
+    @Binding var appThemeMode: String
     
     @State private var selectedTab: SettingsTab = .ai
     
@@ -414,6 +447,7 @@ struct SettingsWindowView: View {
                 ForEach(SettingsTab.allCases, id: \.self) { tab in
                     SettingsSidebarButton(
                         tab: tab,
+                        language: appLanguage,
                         isSelected: selectedTab == tab,
                         action: { selectedTab = tab }
                     )
@@ -431,7 +465,7 @@ struct SettingsWindowView: View {
             // Content
             VStack(spacing: 0) {
                 HStack {
-                    Text(selectedTab.title)
+                    Text(selectedTab.title(language: appLanguage))
                         .font(AppTypography.sectionTitle)
                     Spacer()
                 }
@@ -455,6 +489,11 @@ struct SettingsWindowView: View {
                             )
                         case .prompt:
                             PromptSettingsView(viewModel: viewModel)
+                        case .appearance:
+                            AppearanceSettingsView(
+                                appLanguage: $appLanguage,
+                                appThemeMode: $appThemeMode
+                            )
                         }
                     }
                     .padding(AppSpacing.medium)
@@ -474,20 +513,34 @@ enum SettingsTab: String, CaseIterable {
     case ai = "AI"
     case vault = "Storage"
     case prompt = "Prompt"
+    case appearance = "Appearance"
     
-    var title: String { self.rawValue }
+    func title(language: String) -> String {
+        switch self {
+        case .ai:
+            return AppText.text("AI", "AI", language: language)
+        case .vault:
+            return AppText.text("Storage", "存储", language: language)
+        case .prompt:
+            return AppText.text("Prompt", "提示词", language: language)
+        case .appearance:
+            return AppText.text("Appearance", "外观", language: language)
+        }
+    }
     
     var icon: String {
         switch self {
         case .ai: return "sparkles"
         case .vault: return "folder.fill"
         case .prompt: return "quote.bubble.fill"
+        case .appearance: return "paintpalette.fill"
         }
     }
 }
 
 struct SettingsSidebarButton: View {
     let tab: SettingsTab
+    let language: String
     let isSelected: Bool
     let action: () -> Void
     
@@ -497,7 +550,7 @@ struct SettingsSidebarButton: View {
                 Image(systemName: tab.icon)
                     .font(.system(size: 16, weight: .medium))
                     .frame(width: 24)
-                Text(tab.title)
+                Text(tab.title(language: language))
                     .font(AppTypography.bodyMedium)
                     .fontWeight(isSelected ? .semibold : .regular)
                 Spacer()
@@ -945,6 +998,53 @@ struct StorageSettingsView: View {
 
         if panel.runModal() == .OK, let url = panel.url {
             vaultPath = url.path
+        }
+    }
+}
+
+struct AppearanceSettingsView: View {
+    @Binding var appLanguage: String
+    @Binding var appThemeMode: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.large) {
+            SettingsSection(title: "Language", icon: "globe") {
+                SettingsField(label: "Interface Language") {
+                    Picker("", selection: $appLanguage) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.rawValue).tag(language.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 320)
+                }
+            }
+
+            SettingsSection(title: "Theme", icon: "circle.lefthalf.filled") {
+                SettingsField(label: "Color Mode") {
+                    Picker("", selection: $appThemeMode) {
+                        ForEach(AppThemeMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 220)
+                }
+
+                HStack(spacing: AppSpacing.small) {
+                    Circle()
+                        .fill(AppColors.active)
+                        .frame(width: 18, height: 18)
+
+                    RoundedRectangle(cornerRadius: AppRadius.small)
+                        .fill(AppColors.surfaceRaised)
+                        .frame(width: 42, height: 22)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadius.small)
+                                .stroke(AppColors.subtleBorder, lineWidth: 1)
+                        )
+                }
+            }
         }
     }
 }

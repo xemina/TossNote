@@ -2,8 +2,10 @@ import SwiftUI
 
 struct TopToolbar: View {
     @ObservedObject var viewModel: ContentViewModel
+    let language: String
     var onRead: () -> Void
     var onOrganize: () -> Void
+    var onQuickSave: () -> Void
     var onSave: () -> Void
     var onSettings: () -> Void
     
@@ -12,18 +14,27 @@ struct TopToolbar: View {
             HStack(spacing: AppSpacing.small) {
                 ToolbarIconButton(
                     icon: "doc.on.clipboard",
-                    label: "Paste",
+                    label: t("Paste", "粘贴"),
                     action: onRead,
                     isEnabled: true,
-                    accentColor: .blue
+                    accentColor: AppColors.active
                 )
                 
                 ToolbarIconButton(
                     icon: "wand.and.stars",
-                    label: "Organize",
+                    label: t("Organize", "整理"),
                     action: onOrganize,
                     isEnabled: !viewModel.isProcessing,
                     accentColor: .purple
+                )
+
+                ToolbarIconButton(
+                    icon: "bolt.fill",
+                    label: t("Quick Save", "一键保存"),
+                    action: onQuickSave,
+                    isEnabled: !viewModel.isProcessing,
+                    accentColor: AppColors.active,
+                    isProminent: true
                 )
                 
                 Spacer()
@@ -32,7 +43,7 @@ struct TopToolbar: View {
                     HStack(spacing: AppSpacing.small) {
                         ProgressView()
                             .scaleEffect(0.75)
-                        Text("Organizing...")
+                        Text(t("Working...", "处理中..."))
                             .font(AppTypography.captionMedium)
                             .foregroundStyle(AppColors.secondary)
                     }
@@ -44,7 +55,7 @@ struct TopToolbar: View {
                 
                 ToolbarIconButton(
                     icon: "square.and.arrow.down",
-                    label: "Save",
+                    label: t("Save", "保存"),
                     action: onSave,
                     isEnabled: true,
                     accentColor: AppColors.success
@@ -52,7 +63,7 @@ struct TopToolbar: View {
                 
                 ToolbarIconButton(
                     icon: "gearshape",
-                    label: "Settings",
+                    label: t("Settings", "设置"),
                     action: onSettings,
                     isEnabled: true,
                     accentColor: .gray
@@ -67,6 +78,10 @@ struct TopToolbar: View {
         }
         .background(AppColors.surface)
     }
+
+    private func t(_ english: String, _ chinese: String) -> String {
+        AppText.text(english, chinese, language: language)
+    }
 }
 
 struct ToolbarIconButton: View {
@@ -75,6 +90,7 @@ struct ToolbarIconButton: View {
     let action: () -> Void
     var isEnabled: Bool = true
     var accentColor: Color = .blue
+    var isProminent = false
     
     @State private var isHovering = false
     
@@ -89,10 +105,10 @@ struct ToolbarIconButton: View {
                     .lineLimit(1)
             }
             .frame(width: 68, height: 46)
-            .foregroundStyle(isEnabled ? accentColor : AppColors.secondary)
+            .foregroundStyle(isProminent && isEnabled ? .white : (isEnabled ? accentColor : AppColors.secondary))
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.large)
-                    .fill(isHovering && isEnabled ? accentColor.opacity(0.12) : Color.clear)
+                    .fill(prominentFill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.large)
@@ -107,5 +123,13 @@ struct ToolbarIconButton: View {
                 isHovering = hovering && isEnabled
             }
         }
+    }
+
+    private var prominentFill: Color {
+        if isProminent && isEnabled {
+            return isHovering ? accentColor.opacity(0.9) : accentColor
+        }
+
+        return isHovering && isEnabled ? accentColor.opacity(0.12) : Color.clear
     }
 }
