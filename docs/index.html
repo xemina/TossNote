@@ -28,7 +28,10 @@
           <a href="#download" data-i18n="navDownload">Download</a>
           <a href="https://github.com/xemina/TossNote">GitHub</a>
         </nav>
-        <button class="lang-toggle" type="button" data-language-toggle>中文</button>
+        <div class="lang-switch" aria-label="Language">
+          <button type="button" data-language-option="en">EN</button>
+          <button type="button" data-language-option="zh">中文</button>
+        </div>
       </div>
     </header>
 
@@ -57,51 +60,31 @@
             <span></span>
             <span></span>
           </div>
-          <div class="visual-grid">
-            <section class="capture-card">
-              <div class="panel-title" data-i18n="visualInbox">Inbox</div>
-              <div class="drop-preview">
-                <span class="plus">+</span>
-                <span data-i18n="visualDrop">Drop anything</span>
-              </div>
-              <div class="source-row">
-                <span class="source-dot text-dot"></span>
-                <div>
-                  <strong data-i18n="visualItemOne">Meeting notes</strong>
-                  <small data-i18n="visualItemOneType">plain text</small>
-                </div>
-              </div>
-              <div class="source-row">
-                <span class="source-dot file-dot"></span>
-                <div>
-                  <strong data-i18n="visualItemTwo">Research.pdf</strong>
-                  <small data-i18n="visualItemTwoType">document</small>
-                </div>
-              </div>
-              <div class="source-row">
-                <span class="source-dot link-dot"></span>
-                <div>
-                  <strong data-i18n="visualItemThree">Article link</strong>
-                  <small data-i18n="visualItemThreeType">web page</small>
-                </div>
+          <div class="visual-flow">
+            <section class="flow-card">
+              <span class="flow-number">1</span>
+              <div>
+                <h3 data-i18n="visualStepOneTitle">Collect anything</h3>
+                <p data-i18n="visualStepOneText">Text, links, images, PDFs, Office files, and local documents.</p>
               </div>
             </section>
-
-            <section class="note-card">
-              <div class="panel-title">Markdown</div>
-              <h3 data-i18n="visualNoteTitle">Project research summary</h3>
-              <p data-i18n="visualNoteText">Three key ideas, useful references, and follow-up tasks.</p>
-              <div class="tag-row">
-                <span data-i18n="visualTagOne">research</span>
-                <span data-i18n="visualTagTwo">notes</span>
-                <span data-i18n="visualTagThree">todo</span>
-              </div>
-              <div class="markdown-lines">
-                <span></span>
-                <span></span>
-                <span></span>
+            <section class="flow-card emphasized">
+              <span class="flow-number">2</span>
+              <div>
+                <h3 data-i18n="visualStepTwoTitle">Organize with AI</h3>
+                <p data-i18n="visualStepTwoText">Summaries, structure, tags, and the original content kept together.</p>
               </div>
             </section>
+            <section class="flow-card">
+              <span class="flow-number">3</span>
+              <div>
+                <h3 data-i18n="visualStepThreeTitle">Save as Markdown</h3>
+                <p data-i18n="visualStepThreeText">Write to Obsidian, a local folder, or Joplin with linked attachments.</p>
+              </div>
+            </section>
+            <div class="visual-result">
+              <span data-i18n="visualResult">One clean note, ready to search and connect.</span>
+            </div>
           </div>
         </div>
       </section>
@@ -169,19 +152,13 @@
           downloadMac: "Download for macOS",
           viewSource: "View source",
           versionNote: "Version 1.0.0. Built for macOS 13+ on Apple Silicon.",
-          visualInbox: "Inbox",
-          visualDrop: "Drop anything",
-          visualItemOne: "Meeting notes",
-          visualItemOneType: "plain text",
-          visualItemTwo: "Research.pdf",
-          visualItemTwoType: "document",
-          visualItemThree: "Article link",
-          visualItemThreeType: "web page",
-          visualNoteTitle: "Project research summary",
-          visualNoteText: "Three key ideas, useful references, and follow-up tasks.",
-          visualTagOne: "research",
-          visualTagTwo: "notes",
-          visualTagThree: "todo",
+          visualStepOneTitle: "Collect anything",
+          visualStepOneText: "Text, links, images, PDFs, Office files, and local documents.",
+          visualStepTwoTitle: "Organize with AI",
+          visualStepTwoText: "Summaries, structure, tags, and the original content kept together.",
+          visualStepThreeTitle: "Save as Markdown",
+          visualStepThreeText: "Write to Obsidian, a local folder, or Joplin with linked attachments.",
+          visualResult: "One clean note, ready to search and connect.",
           featuresEyebrow: "What it does",
           featuresTitle: "Save first. Sort later.",
           featureOneTitle: "Mixed input",
@@ -209,19 +186,13 @@
           downloadMac: "下载 macOS 版",
           viewSource: "查看源码",
           versionNote: "版本 1.0.0。适用于 macOS 13+ Apple Silicon。",
-          visualInbox: "收集箱",
-          visualDrop: "拖入任何内容",
-          visualItemOne: "会议记录",
-          visualItemOneType: "普通文本",
-          visualItemTwo: "研究资料.pdf",
-          visualItemTwoType: "文档",
-          visualItemThree: "文章链接",
-          visualItemThreeType: "网页",
-          visualNoteTitle: "项目研究摘要",
-          visualNoteText: "关键想法、参考资料和后续任务已经整理好。",
-          visualTagOne: "研究",
-          visualTagTwo: "笔记",
-          visualTagThree: "待办",
+          visualStepOneTitle: "收集任何内容",
+          visualStepOneText: "文本、链接、图片、PDF、Office 文件和本地文档。",
+          visualStepTwoTitle: "交给 AI 整理",
+          visualStepTwoText: "摘要、结构、标签和原文内容会保存在一起。",
+          visualStepThreeTitle: "保存为 Markdown",
+          visualStepThreeText: "写入 Obsidian、本地文件夹或 Joplin，并关联附件。",
+          visualResult: "一篇干净笔记，方便搜索和关联。",
           featuresEyebrow: "它能做什么",
           featuresTitle: "先保存，之后再整理。",
           featureOneTitle: "混合输入",
@@ -242,7 +213,7 @@
         }
       };
 
-      const toggle = document.querySelector("[data-language-toggle]");
+      const languageButtons = document.querySelectorAll("[data-language-option]");
       const savedLanguage = localStorage.getItem("tossnote-language");
       const browserLanguage = navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
       let currentLanguage = savedLanguage || browserLanguage;
@@ -254,12 +225,18 @@
           const key = node.getAttribute("data-i18n");
           node.textContent = translations[language][key];
         });
-        toggle.textContent = language === "zh" ? "English" : "中文";
+        languageButtons.forEach((button) => {
+          const isActive = button.getAttribute("data-language-option") === language;
+          button.classList.toggle("active", isActive);
+          button.setAttribute("aria-pressed", String(isActive));
+        });
         localStorage.setItem("tossnote-language", language);
       }
 
-      toggle.addEventListener("click", () => {
-        applyLanguage(currentLanguage === "zh" ? "en" : "zh");
+      languageButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          applyLanguage(button.getAttribute("data-language-option"));
+        });
       });
 
       applyLanguage(currentLanguage);
