@@ -21,93 +21,248 @@
         <img src="assets/tossnote-icon.png" alt="" width="34" height="34">
         <span>TossNote</span>
       </a>
-      <nav>
-        <a href="#features">Features</a>
-        <a href="#workflow">Workflow</a>
-        <a href="#download">Download</a>
-        <a href="https://github.com/xemina/TossNote">GitHub</a>
-      </nav>
+      <div class="header-actions">
+        <nav>
+          <a href="#features" data-i18n="navFeatures">Features</a>
+          <a href="#workflow" data-i18n="navWorkflow">Workflow</a>
+          <a href="#download" data-i18n="navDownload">Download</a>
+          <a href="https://github.com/xemina/TossNote">GitHub</a>
+        </nav>
+        <button class="lang-toggle" type="button" data-language-toggle>中文</button>
+      </div>
     </header>
 
     <main>
       <section class="hero">
-        <img class="hero-mark" src="assets/tossnote-icon.png" alt="">
         <div class="hero-copy">
-          <p class="eyebrow">macOS notes inbox</p>
+          <p class="eyebrow" data-i18n="heroEyebrow">macOS notes inbox</p>
           <h1>TossNote</h1>
-          <p class="lead">
+          <p class="lead" data-i18n="heroLead">
             Drop messy information in. Let your AI organize it into clean Markdown notes with summaries, tags, and linked attachments.
           </p>
           <div class="actions">
-            <a class="button primary" href="https://github.com/xemina/TossNote/releases/download/v1.0.0/TossNote-1.0.0.dmg">
+            <a class="button primary" href="https://github.com/xemina/TossNote/releases/download/v1.0.0/TossNote-1.0.0.dmg" data-i18n="downloadMac">
               Download for macOS
             </a>
-            <a class="button secondary" href="https://github.com/xemina/TossNote">
+            <a class="button secondary" href="https://github.com/xemina/TossNote" data-i18n="viewSource">
               View source
             </a>
           </div>
-          <p class="note">Version 1.0.0. Built for macOS 13+ on Apple Silicon.</p>
+          <p class="note" data-i18n="versionNote">Version 1.0.0. Built for macOS 13+ on Apple Silicon.</p>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="window-chrome">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="visual-grid">
+            <section class="capture-card">
+              <div class="panel-title" data-i18n="visualInbox">Inbox</div>
+              <div class="drop-preview">
+                <span class="plus">+</span>
+                <span data-i18n="visualDrop">Drop anything</span>
+              </div>
+              <div class="source-row">
+                <span class="source-dot text-dot"></span>
+                <div>
+                  <strong data-i18n="visualItemOne">Meeting notes</strong>
+                  <small data-i18n="visualItemOneType">plain text</small>
+                </div>
+              </div>
+              <div class="source-row">
+                <span class="source-dot file-dot"></span>
+                <div>
+                  <strong data-i18n="visualItemTwo">Research.pdf</strong>
+                  <small data-i18n="visualItemTwoType">document</small>
+                </div>
+              </div>
+              <div class="source-row">
+                <span class="source-dot link-dot"></span>
+                <div>
+                  <strong data-i18n="visualItemThree">Article link</strong>
+                  <small data-i18n="visualItemThreeType">web page</small>
+                </div>
+              </div>
+            </section>
+
+            <section class="note-card">
+              <div class="panel-title">Markdown</div>
+              <h3 data-i18n="visualNoteTitle">Project research summary</h3>
+              <p data-i18n="visualNoteText">Three key ideas, useful references, and follow-up tasks.</p>
+              <div class="tag-row">
+                <span data-i18n="visualTagOne">research</span>
+                <span data-i18n="visualTagTwo">notes</span>
+                <span data-i18n="visualTagThree">todo</span>
+              </div>
+              <div class="markdown-lines">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </section>
+          </div>
         </div>
       </section>
 
       <section id="features" class="band">
         <div class="section-heading">
-          <p class="eyebrow">What it does</p>
-          <h2>Save first. Sort later.</h2>
+          <p class="eyebrow" data-i18n="featuresEyebrow">What it does</p>
+          <h2 data-i18n="featuresTitle">Save first. Sort later.</h2>
         </div>
         <div class="feature-grid">
           <article class="feature">
-            <h3>Mixed input</h3>
-            <p>Capture text, links, images, PDFs, Office documents, Markdown, CSV, JSON, HTML, XML, RTF, and local files.</p>
+            <h3 data-i18n="featureOneTitle">Mixed input</h3>
+            <p data-i18n="featureOneText">Capture text, links, images, PDFs, Office documents, Markdown, CSV, JSON, HTML, XML, RTF, and local files.</p>
           </article>
           <article class="feature">
-            <h3>AI-organized Markdown</h3>
-            <p>Send the combined context to your chosen AI provider and get editable Markdown with summaries, structure, and tags.</p>
+            <h3 data-i18n="featureTwoTitle">AI-organized Markdown</h3>
+            <p data-i18n="featureTwoText">Send the combined context to your chosen AI provider and get editable Markdown with summaries, structure, and tags.</p>
           </article>
           <article class="feature">
-            <h3>Flexible storage</h3>
-            <p>Save notes and attachments to Obsidian, a plain local folder, or Joplin Web Clipper.</p>
+            <h3 data-i18n="featureThreeTitle">Flexible storage</h3>
+            <p data-i18n="featureThreeText">Save notes and attachments to Obsidian, a plain local folder, or Joplin Web Clipper.</p>
           </article>
         </div>
       </section>
 
       <section id="workflow" class="split">
         <div>
-          <p class="eyebrow">Simple workflow</p>
-          <h2>Built for people who do not want to organize notes by hand.</h2>
+          <p class="eyebrow" data-i18n="workflowEyebrow">Simple workflow</p>
+          <h2 data-i18n="workflowTitle">Built for people who do not want to organize notes by hand.</h2>
         </div>
         <ol class="steps">
-          <li><span>1</span><p>Paste text or drop files into TossNote.</p></li>
-          <li><span>2</span><p>Click Organize to preview, or Quick Save to trust the result and save immediately.</p></li>
-          <li><span>3</span><p>Find clean Markdown notes with original content and linked attachments in your chosen storage.</p></li>
+          <li><span>1</span><p data-i18n="stepOne">Paste text or drop files into TossNote.</p></li>
+          <li><span>2</span><p data-i18n="stepTwo">Click Organize to preview, or Quick Save to trust the result and save immediately.</p></li>
+          <li><span>3</span><p data-i18n="stepThree">Find clean Markdown notes with original content and linked attachments in your chosen storage.</p></li>
         </ol>
       </section>
 
       <section id="download" class="download">
         <div>
-          <p class="eyebrow">Download</p>
+          <p class="eyebrow" data-i18n="downloadEyebrow">Download</p>
           <h2>TossNote 1.0.0</h2>
-          <p>
+          <p data-i18n="downloadText">
             The current DMG is an unsigned community build. macOS may ask you to confirm before opening it.
           </p>
         </div>
-        <a class="button primary" href="https://github.com/xemina/TossNote/releases/download/v1.0.0/TossNote-1.0.0.dmg">
+        <a class="button primary" href="https://github.com/xemina/TossNote/releases/download/v1.0.0/TossNote-1.0.0.dmg" data-i18n="downloadDmg">
           Download DMG
         </a>
-      </section>
-
-      <section class="zh">
-        <p class="eyebrow">中文</p>
-        <h2>适合懒人的信息收集笔记应用。</h2>
-        <p>
-          把文本、链接、图片、PDF、Office 文档和本地文件先丢进 TossNote。它会把混杂信息交给你选择的 AI 服务整理成 Markdown，生成摘要、标签和结构化内容，再保存到 Obsidian、本地文件夹或 Joplin。
-        </p>
       </section>
     </main>
 
     <footer>
       <span>TossNote</span>
-      <span>Open source on GitHub</span>
+      <span data-i18n="footerText">Open source on GitHub</span>
     </footer>
+
+    <script>
+      const translations = {
+        en: {
+          navFeatures: "Features",
+          navWorkflow: "Workflow",
+          navDownload: "Download",
+          heroEyebrow: "macOS notes inbox",
+          heroLead: "Drop messy information in. Let your AI organize it into clean Markdown notes with summaries, tags, and linked attachments.",
+          downloadMac: "Download for macOS",
+          viewSource: "View source",
+          versionNote: "Version 1.0.0. Built for macOS 13+ on Apple Silicon.",
+          visualInbox: "Inbox",
+          visualDrop: "Drop anything",
+          visualItemOne: "Meeting notes",
+          visualItemOneType: "plain text",
+          visualItemTwo: "Research.pdf",
+          visualItemTwoType: "document",
+          visualItemThree: "Article link",
+          visualItemThreeType: "web page",
+          visualNoteTitle: "Project research summary",
+          visualNoteText: "Three key ideas, useful references, and follow-up tasks.",
+          visualTagOne: "research",
+          visualTagTwo: "notes",
+          visualTagThree: "todo",
+          featuresEyebrow: "What it does",
+          featuresTitle: "Save first. Sort later.",
+          featureOneTitle: "Mixed input",
+          featureOneText: "Capture text, links, images, PDFs, Office documents, Markdown, CSV, JSON, HTML, XML, RTF, and local files.",
+          featureTwoTitle: "AI-organized Markdown",
+          featureTwoText: "Send the combined context to your chosen AI provider and get editable Markdown with summaries, structure, and tags.",
+          featureThreeTitle: "Flexible storage",
+          featureThreeText: "Save notes and attachments to Obsidian, a plain local folder, or Joplin Web Clipper.",
+          workflowEyebrow: "Simple workflow",
+          workflowTitle: "Built for people who do not want to organize notes by hand.",
+          stepOne: "Paste text or drop files into TossNote.",
+          stepTwo: "Click Organize to preview, or Quick Save to trust the result and save immediately.",
+          stepThree: "Find clean Markdown notes with original content and linked attachments in your chosen storage.",
+          downloadEyebrow: "Download",
+          downloadText: "The current DMG is an unsigned community build. macOS may ask you to confirm before opening it.",
+          downloadDmg: "Download DMG",
+          footerText: "Open source on GitHub"
+        },
+        zh: {
+          navFeatures: "功能",
+          navWorkflow: "流程",
+          navDownload: "下载",
+          heroEyebrow: "macOS 信息收集箱",
+          heroLead: "把混乱的信息先丢进来，让你选择的 AI 整理成干净的 Markdown 笔记，包含摘要、标签和附件关联。",
+          downloadMac: "下载 macOS 版",
+          viewSource: "查看源码",
+          versionNote: "版本 1.0.0。适用于 macOS 13+ Apple Silicon。",
+          visualInbox: "收集箱",
+          visualDrop: "拖入任何内容",
+          visualItemOne: "会议记录",
+          visualItemOneType: "普通文本",
+          visualItemTwo: "研究资料.pdf",
+          visualItemTwoType: "文档",
+          visualItemThree: "文章链接",
+          visualItemThreeType: "网页",
+          visualNoteTitle: "项目研究摘要",
+          visualNoteText: "关键想法、参考资料和后续任务已经整理好。",
+          visualTagOne: "研究",
+          visualTagTwo: "笔记",
+          visualTagThree: "待办",
+          featuresEyebrow: "它能做什么",
+          featuresTitle: "先保存，之后再整理。",
+          featureOneTitle: "混合输入",
+          featureOneText: "支持文本、链接、图片、PDF、Office 文档、Markdown、CSV、JSON、HTML、XML、RTF 和本地文件。",
+          featureTwoTitle: "AI 整理 Markdown",
+          featureTwoText: "把汇总内容交给你选择的 AI 服务，返回带摘要、结构和标签的可编辑 Markdown。",
+          featureThreeTitle: "灵活存储",
+          featureThreeText: "可以把笔记和附件保存到 Obsidian、本地文件夹或 Joplin Web Clipper。",
+          workflowEyebrow: "简单流程",
+          workflowTitle: "为不想手动整理笔记的人做的信息收集工具。",
+          stepOne: "粘贴文本，或者把文件拖进 TossNote。",
+          stepTwo: "点击 Organize 预览结果，或用 Quick Save 直接整理并保存。",
+          stepThree: "在你的存储位置找到干净的 Markdown、原文内容和关联附件。",
+          downloadEyebrow: "下载",
+          downloadText: "当前 DMG 是未签名的社区构建版本，macOS 可能会在首次打开时要求你确认。",
+          downloadDmg: "下载 DMG",
+          footerText: "开源项目，托管在 GitHub"
+        }
+      };
+
+      const toggle = document.querySelector("[data-language-toggle]");
+      const savedLanguage = localStorage.getItem("tossnote-language");
+      const browserLanguage = navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
+      let currentLanguage = savedLanguage || browserLanguage;
+
+      function applyLanguage(language) {
+        currentLanguage = language;
+        document.documentElement.lang = language === "zh" ? "zh-Hans" : "en";
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          const key = node.getAttribute("data-i18n");
+          node.textContent = translations[language][key];
+        });
+        toggle.textContent = language === "zh" ? "English" : "中文";
+        localStorage.setItem("tossnote-language", language);
+      }
+
+      toggle.addEventListener("click", () => {
+        applyLanguage(currentLanguage === "zh" ? "en" : "zh");
+      });
+
+      applyLanguage(currentLanguage);
+    </script>
   </body>
 </html>

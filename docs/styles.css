@@ -70,9 +70,34 @@ nav a:hover {
   color: var(--ink);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.lang-toggle {
+  min-width: 74px;
+  height: 34px;
+  border: 1px solid rgba(73, 105, 78, 0.2);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.lang-toggle:hover {
+  background: #f9fbf7;
+}
+
 .hero {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 0.8fr);
+  gap: clamp(34px, 7vw, 88px);
   min-height: 660px;
   align-items: center;
   overflow: hidden;
@@ -88,20 +113,171 @@ nav a:hover {
   background: var(--line);
 }
 
-.hero-mark {
-  position: absolute;
-  right: clamp(-90px, -3vw, -22px);
-  bottom: -56px;
-  width: min(52vw, 610px);
-  min-width: 360px;
-  opacity: 0.72;
-  filter: drop-shadow(var(--shadow));
-}
-
 .hero-copy {
   position: relative;
   z-index: 1;
   max-width: 690px;
+}
+
+.hero-visual {
+  position: relative;
+  z-index: 1;
+  padding: 16px;
+  border: 1px solid rgba(73, 105, 78, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+}
+
+.window-chrome {
+  display: flex;
+  gap: 7px;
+  padding: 2px 2px 14px;
+}
+
+.window-chrome span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d9e4d8;
+}
+
+.visual-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.capture-card,
+.note-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.panel-title {
+  margin-bottom: 12px;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.drop-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px dashed rgba(73, 105, 78, 0.32);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 680;
+}
+
+.plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #26392a;
+}
+
+.source-row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.source-row strong,
+.source-row small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-row strong {
+  font-size: 14px;
+}
+
+.source-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.source-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.text-dot {
+  background: #6e9aba;
+}
+
+.file-dot {
+  background: #8e7eb8;
+}
+
+.link-dot {
+  background: #87aa78;
+}
+
+.note-card h3 {
+  margin-bottom: 8px;
+}
+
+.note-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.tag-row span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.markdown-lines {
+  display: grid;
+  gap: 8px;
+}
+
+.markdown-lines span {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: #e1e9de;
+}
+
+.markdown-lines span:nth-child(2) {
+  width: 82%;
+}
+
+.markdown-lines span:nth-child(3) {
+  width: 58%;
 }
 
 .eyebrow {
@@ -192,8 +368,7 @@ h3 {
 
 .band,
 .split,
-.download,
-.zh {
+.download {
   padding: 84px clamp(22px, 8vw, 104px);
 }
 
@@ -221,7 +396,6 @@ h3 {
 
 .feature p,
 .download p,
-.zh p,
 .steps p {
   margin: 0;
   color: var(--muted);
@@ -276,16 +450,6 @@ h3 {
   margin-top: 12px;
 }
 
-.zh {
-  background: var(--surface);
-}
-
-.zh p {
-  max-width: 820px;
-  margin-top: 16px;
-  font-size: 18px;
-}
-
 footer {
   display: flex;
   justify-content: space-between;
@@ -302,21 +466,26 @@ footer {
     flex-direction: column;
   }
 
+  .header-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
   nav {
     flex-wrap: wrap;
     gap: 14px;
   }
 
   .hero {
+    grid-template-columns: 1fr;
     min-height: 620px;
     padding-top: 70px;
   }
 
-  .hero-mark {
-    right: -130px;
-    bottom: -80px;
-    min-width: 420px;
-    opacity: 0.42;
+  .hero-visual {
+    max-width: 560px;
   }
 
   h1 {

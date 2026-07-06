@@ -2,6 +2,8 @@
 
 This folder is designed for GitHub Pages.
 
+The landing page is bilingual. The language toggle is in the top-right corner, and the selected language is saved in the browser.
+
 ## Deploy
 
 1. Create a GitHub release named `v1.0.0`.
