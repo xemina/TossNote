@@ -93,23 +93,17 @@ struct CapturePanel: View {
             sourceURL: imageURL,
             thumbnail: NSImage(contentsOf: imageURL)
         )
-        workspaceItem.status = .waiting
+        // Mark the item as processing before launching OCR. Previously this was
+        // changed after a delay, which could run *after* a fast OCR completion
+        // and overwrite `.completed` with `.processing` permanently.
+        workspaceItem.status = .processing
         captureItems.append(workspaceItem)
         
         // Start OCR processing
-        if let index = captureItems.firstIndex(where: { $0.id == workspaceItem.id }) {
-            // Update status to processing
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                if index < captureItems.count {
-                    captureItems[index].status = .processing
-                }
-            }
-            
-            Task {
-                let extracted = await extractor.extract(from: imageURL)
-                await MainActor.run {
-                    updateItem(id: workspaceItem.id, text: extracted, status: .completed)
-                }
+        Task {
+            let extracted = await extractor.extract(from: imageURL)
+            await MainActor.run {
+                updateItem(id: workspaceItem.id, text: extracted, status: .completed)
             }
         }
     }
@@ -168,20 +162,15 @@ struct CapturePanel: View {
             if let textContent = item.textContent {
                 updateItem(id: item.id, text: textContent, status: .completed)
             } else if workspaceItem.type == .image && item.url != nil {
-                if let index = captureItems.firstIndex(where: { $0.id == item.id }) {
-                    // Update status to processing
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        if index < captureItems.count {
-                            captureItems[index].status = .processing
-                        }
-                    }
-                    
-                    if let imageURL = item.url {
-                        Task {
-                            let extracted = await extractor.extract(from: imageURL)
-                            await MainActor.run {
-                                updateItem(id: item.id, text: extracted, status: .completed)
-                            }
+                // Set the state synchronously to avoid a delayed update racing a
+                // completed OCR result and leaving the item stuck as processing.
+                updateItem(id: item.id, text: "", status: .processing)
+
+                if let imageURL = item.url {
+                    Task {
+                        let extracted = await extractor.extract(from: imageURL)
+                        await MainActor.run {
+                            updateItem(id: item.id, text: extracted, status: .completed)
                         }
                     }
                 }

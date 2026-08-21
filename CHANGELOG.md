@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format follows Keep a Changelog, and this project uses Semantic Versioning.
 
+## [1.0.1] - 2026-08-21
+
+### Fixed
+
+- Fix pasted images occasionally remaining stuck in the “Processing” state after OCR completed, which prevented subsequent organization or Quick Save actions.
+- Apply the same OCR state-transition fix to dropped images.
+
+### Changed
+
+- Add a reproducible macOS DMG packaging script for release builds.
+
 ## [1.0.0] - 2026-07-05
 
 ### Added
