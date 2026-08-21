@@ -1,6 +1,8 @@
 # TossNote
 
-Version: `1.0.0`
+Version: `1.0.1`
+
+Website: https://xemina.github.io/TossNote/
 
 TossNote is a lazy-friendly inbox for turning scattered information into usable notes.
 
@@ -106,7 +108,7 @@ The current version is stored in:
 Create releases with Git tags:
 
 ```bash
-git tag v1.0.0
+git tag v1.0.1
 git push origin main --tags
 ```
 
@@ -138,7 +140,9 @@ TossNote 是一个适合懒人使用的信息收集笔记应用。
 
 你可以先把文本、链接、图片、PDF、Office 文档和各种本地文件丢进去，不用马上分类、命名或打标签。TossNote 会尽可能提取内容，把混杂的信息交给你选择的 AI 服务整理，然后返回带摘要、结构和标签的可编辑 Markdown。它适合“先收集，后整理”的工作流，并支持一键保存到 Obsidian、本地文件夹或 Joplin。
 
-当前版本：`1.0.0`
+当前版本：`1.0.1`
+
+官网：https://xemina.github.io/TossNote/
 
 ## 功能
 
@@ -238,7 +242,7 @@ swift build
 发布版本时使用 Git tag：
 
 ```bash
-git tag v1.0.0
+git tag v1.0.1
 git push origin main --tags
 ```
 
